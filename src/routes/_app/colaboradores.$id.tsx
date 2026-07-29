@@ -97,13 +97,7 @@ function ColaboradorDetalhePage() {
   return (
     <PageShell
       title={colaborador.nome_completo}
-      description={
-        <span className="flex items-center gap-2">
-          <span>{colaborador.cargo ?? "Cargo não informado"}</span>
-          <span className="text-muted-foreground">•</span>
-          <span>{colaborador.tomador?.razao_social ?? "Sem tomador"}</span>
-        </span>
-      as never}
+      description={`${colaborador.cargo ?? "Cargo não informado"} • ${colaborador.tomador?.razao_social ?? "Sem tomador"}`}
       icon={<User className="h-5 w-5 text-gold-foreground" />}
       actions={
         <div className="flex gap-2">
