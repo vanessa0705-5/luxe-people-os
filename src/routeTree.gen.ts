@@ -24,6 +24,7 @@ import { Route as AppCoordenadoresRouteImport } from './routes/_app/coordenadore
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as AppAuditoriaRouteImport } from './routes/_app/auditoria'
 import { Route as AppAdministracaoRouteImport } from './routes/_app/administracao'
+import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -99,13 +100,18 @@ const AppAdministracaoRoute = AppAdministracaoRouteImport.update({
   path: '/administracao',
   getParentRoute: () => AppRoute,
 } as any)
+const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppColaboradoresRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
   '/auditoria': typeof AppAuditoriaRoute
-  '/colaboradores': typeof AppColaboradoresRoute
+  '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
   '/dashboard': typeof AppDashboardRoute
   '/desligados': typeof AppDesligadosRoute
@@ -115,13 +121,14 @@ export interface FileRoutesByFullPath {
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
+  '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
   '/auditoria': typeof AppAuditoriaRoute
-  '/colaboradores': typeof AppColaboradoresRoute
+  '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
   '/dashboard': typeof AppDashboardRoute
   '/desligados': typeof AppDesligadosRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
+  '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,7 +147,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_app/administracao': typeof AppAdministracaoRoute
   '/_app/auditoria': typeof AppAuditoriaRoute
-  '/_app/colaboradores': typeof AppColaboradoresRoute
+  '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/_app/coordenadores': typeof AppCoordenadoresRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/desligados': typeof AppDesligadosRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tomadores': typeof AppTomadoresRoute
+  '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/relatorios'
     | '/tomadores'
+    | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/relatorios'
     | '/tomadores'
+    | '/colaboradores/$id'
   id:
     | '__root__'
     | '/'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/_app/movimentacoes'
     | '/_app/relatorios'
     | '/_app/tomadores'
+    | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -315,13 +327,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdministracaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/colaboradores/$id': {
+      id: '/_app/colaboradores/$id'
+      path: '/$id'
+      fullPath: '/colaboradores/$id'
+      preLoaderRoute: typeof AppColaboradoresIdRouteImport
+      parentRoute: typeof AppColaboradoresRoute
+    }
   }
 }
+
+interface AppColaboradoresRouteChildren {
+  AppColaboradoresIdRoute: typeof AppColaboradoresIdRoute
+}
+
+const AppColaboradoresRouteChildren: AppColaboradoresRouteChildren = {
+  AppColaboradoresIdRoute: AppColaboradoresIdRoute,
+}
+
+const AppColaboradoresRouteWithChildren =
+  AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
 
 interface AppRouteChildren {
   AppAdministracaoRoute: typeof AppAdministracaoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
-  AppColaboradoresRoute: typeof AppColaboradoresRoute
+  AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
   AppCoordenadoresRoute: typeof AppCoordenadoresRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDesligadosRoute: typeof AppDesligadosRoute
@@ -336,7 +366,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdministracaoRoute: AppAdministracaoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
-  AppColaboradoresRoute: AppColaboradoresRoute,
+  AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
   AppCoordenadoresRoute: AppCoordenadoresRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDesligadosRoute: AppDesligadosRoute,
