@@ -44,6 +44,202 @@ export type Database = {
         }
         Relationships: []
       }
+      colaborador_dependentes: {
+        Row: {
+          colaborador_id: string
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          id: string
+          nome_completo: string
+          parentesco: string
+          updated_at: string
+          usa_ir: boolean
+          usa_salario_familia: boolean
+        }
+        Insert: {
+          colaborador_id: string
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nome_completo: string
+          parentesco: string
+          updated_at?: string
+          usa_ir?: boolean
+          usa_salario_familia?: boolean
+        }
+        Update: {
+          colaborador_id?: string
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nome_completo?: string
+          parentesco?: string
+          updated_at?: string
+          usa_ir?: boolean
+          usa_salario_familia?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaborador_dependentes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      colaboradores: {
+        Row: {
+          agencia: string | null
+          bairro: string | null
+          banco: string | null
+          cargo: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          conta: string | null
+          cpf: string
+          created_at: string
+          created_by: string | null
+          ctps_numero: string | null
+          ctps_serie: string | null
+          data_admissao: string | null
+          data_desligamento: string | null
+          data_nascimento: string | null
+          departamento: string | null
+          email: string | null
+          estado_civil: Database["public"]["Enums"]["estado_civil"] | null
+          funcao: string | null
+          id: string
+          jornada_semanal: number | null
+          logradouro: string | null
+          matricula: string | null
+          nacionalidade: string | null
+          nome_completo: string
+          numero: string | null
+          observacoes: string | null
+          pis_pasep: string | null
+          reservista: string | null
+          rg: string | null
+          rg_orgao_emissor: string | null
+          salario: number | null
+          sexo: Database["public"]["Enums"]["sexo"] | null
+          status: Database["public"]["Enums"]["status_colaborador"]
+          telefone: string | null
+          tipo_contrato: Database["public"]["Enums"]["tipo_contrato"] | null
+          titulo_eleitor: string | null
+          titulo_secao: string | null
+          titulo_zona: string | null
+          tomador_id: string
+          uf: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          conta?: string | null
+          cpf: string
+          created_at?: string
+          created_by?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          departamento?: string | null
+          email?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          funcao?: string | null
+          id?: string
+          jornada_semanal?: number | null
+          logradouro?: string | null
+          matricula?: string | null
+          nacionalidade?: string | null
+          nome_completo: string
+          numero?: string | null
+          observacoes?: string | null
+          pis_pasep?: string | null
+          reservista?: string | null
+          rg?: string | null
+          rg_orgao_emissor?: string | null
+          salario?: number | null
+          sexo?: Database["public"]["Enums"]["sexo"] | null
+          status?: Database["public"]["Enums"]["status_colaborador"]
+          telefone?: string | null
+          tipo_contrato?: Database["public"]["Enums"]["tipo_contrato"] | null
+          titulo_eleitor?: string | null
+          titulo_secao?: string | null
+          titulo_zona?: string | null
+          tomador_id: string
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          conta?: string | null
+          cpf?: string
+          created_at?: string
+          created_by?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          data_admissao?: string | null
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          departamento?: string | null
+          email?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          funcao?: string | null
+          id?: string
+          jornada_semanal?: number | null
+          logradouro?: string | null
+          matricula?: string | null
+          nacionalidade?: string | null
+          nome_completo?: string
+          numero?: string | null
+          observacoes?: string | null
+          pis_pasep?: string | null
+          reservista?: string | null
+          rg?: string | null
+          rg_orgao_emissor?: string | null
+          salario?: number | null
+          sexo?: Database["public"]["Enums"]["sexo"] | null
+          status?: Database["public"]["Enums"]["status_colaborador"]
+          telefone?: string | null
+          tipo_contrato?: Database["public"]["Enums"]["tipo_contrato"] | null
+          titulo_eleitor?: string | null
+          titulo_secao?: string | null
+          titulo_zona?: string | null
+          tomador_id?: string
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_tomador_id_fkey"
+            columns: ["tomador_id"]
+            isOneToOne: false
+            referencedRelation: "tomadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -73,6 +269,39 @@ export type Database = {
           id?: string
           is_active?: boolean
           job_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tomadores: {
+        Row: {
+          cnpj: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          nome_fantasia: string | null
+          razao_social: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          nome_fantasia?: string | null
+          razao_social: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          nome_fantasia?: string | null
+          razao_social?: string
           updated_at?: string
         }
         Relationships: []
@@ -111,9 +340,19 @@ export type Database = {
         Returns: boolean
       }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
+      pode_gerenciar_rh: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin_principal" | "rh" | "gestor" | "consulta"
+      estado_civil:
+        | "solteiro"
+        | "casado"
+        | "divorciado"
+        | "viuvo"
+        | "uniao_estavel"
+      sexo: "masculino" | "feminino" | "outro"
+      status_colaborador: "ativo" | "afastado" | "ferias" | "desligado"
+      tipo_contrato: "clt" | "pj" | "temporario" | "estagio" | "terceirizado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -242,6 +481,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin_principal", "rh", "gestor", "consulta"],
+      estado_civil: [
+        "solteiro",
+        "casado",
+        "divorciado",
+        "viuvo",
+        "uniao_estavel",
+      ],
+      sexo: ["masculino", "feminino", "outro"],
+      status_colaborador: ["ativo", "afastado", "ferias", "desligado"],
+      tipo_contrato: ["clt", "pj", "temporario", "estagio", "terceirizado"],
     },
   },
 } as const
