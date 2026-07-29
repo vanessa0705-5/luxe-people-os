@@ -9,38 +9,221 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
+import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
+import { Route as AppFeriasRouteImport } from './routes/_app/ferias'
+import { Route as AppEmpresasRouteImport } from './routes/_app/empresas'
+import { Route as AppDocumentosRouteImport } from './routes/_app/documentos'
+import { Route as AppDesligadosRouteImport } from './routes/_app/desligados'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCoordenadoresRouteImport } from './routes/_app/coordenadores'
+import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
+import { Route as AppAuditoriaRouteImport } from './routes/_app/auditoria'
+import { Route as AppAdministracaoRouteImport } from './routes/_app/administracao'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTomadoresRoute = AppTomadoresRouteImport.update({
+  id: '/tomadores',
+  path: '/tomadores',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
+  id: '/movimentacoes',
+  path: '/movimentacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFeriasRoute = AppFeriasRouteImport.update({
+  id: '/ferias',
+  path: '/ferias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEmpresasRoute = AppEmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDocumentosRoute = AppDocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDesligadosRoute = AppDesligadosRouteImport.update({
+  id: '/desligados',
+  path: '/desligados',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoordenadoresRoute = AppCoordenadoresRouteImport.update({
+  id: '/coordenadores',
+  path: '/coordenadores',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
+  id: '/colaboradores',
+  path: '/colaboradores',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditoriaRoute = AppAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdministracaoRoute = AppAdministracaoRouteImport.update({
+  id: '/administracao',
+  path: '/administracao',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/administracao': typeof AppAdministracaoRoute
+  '/auditoria': typeof AppAuditoriaRoute
+  '/colaboradores': typeof AppColaboradoresRoute
+  '/coordenadores': typeof AppCoordenadoresRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/desligados': typeof AppDesligadosRoute
+  '/documentos': typeof AppDocumentosRoute
+  '/empresas': typeof AppEmpresasRoute
+  '/ferias': typeof AppFeriasRoute
+  '/movimentacoes': typeof AppMovimentacoesRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/tomadores': typeof AppTomadoresRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/administracao': typeof AppAdministracaoRoute
+  '/auditoria': typeof AppAuditoriaRoute
+  '/colaboradores': typeof AppColaboradoresRoute
+  '/coordenadores': typeof AppCoordenadoresRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/desligados': typeof AppDesligadosRoute
+  '/documentos': typeof AppDocumentosRoute
+  '/empresas': typeof AppEmpresasRoute
+  '/ferias': typeof AppFeriasRoute
+  '/movimentacoes': typeof AppMovimentacoesRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/tomadores': typeof AppTomadoresRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/administracao': typeof AppAdministracaoRoute
+  '/_app/auditoria': typeof AppAuditoriaRoute
+  '/_app/colaboradores': typeof AppColaboradoresRoute
+  '/_app/coordenadores': typeof AppCoordenadoresRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/desligados': typeof AppDesligadosRoute
+  '/_app/documentos': typeof AppDocumentosRoute
+  '/_app/empresas': typeof AppEmpresasRoute
+  '/_app/ferias': typeof AppFeriasRoute
+  '/_app/movimentacoes': typeof AppMovimentacoesRoute
+  '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/tomadores': typeof AppTomadoresRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/administracao'
+    | '/auditoria'
+    | '/colaboradores'
+    | '/coordenadores'
+    | '/dashboard'
+    | '/desligados'
+    | '/documentos'
+    | '/empresas'
+    | '/ferias'
+    | '/movimentacoes'
+    | '/relatorios'
+    | '/tomadores'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/administracao'
+    | '/auditoria'
+    | '/colaboradores'
+    | '/coordenadores'
+    | '/dashboard'
+    | '/desligados'
+    | '/documentos'
+    | '/empresas'
+    | '/ferias'
+    | '/movimentacoes'
+    | '/relatorios'
+    | '/tomadores'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/administracao'
+    | '/_app/auditoria'
+    | '/_app/colaboradores'
+    | '/_app/coordenadores'
+    | '/_app/dashboard'
+    | '/_app/desligados'
+    | '/_app/documentos'
+    | '/_app/empresas'
+    | '/_app/ferias'
+    | '/_app/movimentacoes'
+    | '/_app/relatorios'
+    | '/_app/tomadores'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +231,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/tomadores': {
+      id: '/_app/tomadores'
+      path: '/tomadores'
+      fullPath: '/tomadores'
+      preLoaderRoute: typeof AppTomadoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/relatorios': {
+      id: '/_app/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/movimentacoes': {
+      id: '/_app/movimentacoes'
+      path: '/movimentacoes'
+      fullPath: '/movimentacoes'
+      preLoaderRoute: typeof AppMovimentacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ferias': {
+      id: '/_app/ferias'
+      path: '/ferias'
+      fullPath: '/ferias'
+      preLoaderRoute: typeof AppFeriasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/empresas': {
+      id: '/_app/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof AppEmpresasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/documentos': {
+      id: '/_app/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof AppDocumentosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/desligados': {
+      id: '/_app/desligados'
+      path: '/desligados'
+      fullPath: '/desligados'
+      preLoaderRoute: typeof AppDesligadosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coordenadores': {
+      id: '/_app/coordenadores'
+      path: '/coordenadores'
+      fullPath: '/coordenadores'
+      preLoaderRoute: typeof AppCoordenadoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/colaboradores': {
+      id: '/_app/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/colaboradores'
+      preLoaderRoute: typeof AppColaboradoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/auditoria': {
+      id: '/_app/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AppAuditoriaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/administracao': {
+      id: '/_app/administracao'
+      path: '/administracao'
+      fullPath: '/administracao'
+      preLoaderRoute: typeof AppAdministracaoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAdministracaoRoute: typeof AppAdministracaoRoute
+  AppAuditoriaRoute: typeof AppAuditoriaRoute
+  AppColaboradoresRoute: typeof AppColaboradoresRoute
+  AppCoordenadoresRoute: typeof AppCoordenadoresRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDesligadosRoute: typeof AppDesligadosRoute
+  AppDocumentosRoute: typeof AppDocumentosRoute
+  AppEmpresasRoute: typeof AppEmpresasRoute
+  AppFeriasRoute: typeof AppFeriasRoute
+  AppMovimentacoesRoute: typeof AppMovimentacoesRoute
+  AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppTomadoresRoute: typeof AppTomadoresRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdministracaoRoute: AppAdministracaoRoute,
+  AppAuditoriaRoute: AppAuditoriaRoute,
+  AppColaboradoresRoute: AppColaboradoresRoute,
+  AppCoordenadoresRoute: AppCoordenadoresRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppDesligadosRoute: AppDesligadosRoute,
+  AppDocumentosRoute: AppDocumentosRoute,
+  AppEmpresasRoute: AppEmpresasRoute,
+  AppFeriasRoute: AppFeriasRoute,
+  AppMovimentacoesRoute: AppMovimentacoesRoute,
+  AppRelatoriosRoute: AppRelatoriosRoute,
+  AppTomadoresRoute: AppTomadoresRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
