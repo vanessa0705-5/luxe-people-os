@@ -44,8 +44,14 @@ const empty: FormState = {
   status: "ativo",
 };
 
+type Errors = Partial<Record<"nome_completo" | "cpf" | "tomador_id" | "email", string>>;
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
 export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props) {
   const [form, setForm] = useState<FormState>(empty);
+  const [errors, setErrors] = useState<Errors>({});
+  const [tab, setTab] = useState("pessoais");
   const qc = useQueryClient();
 
   const { data: tomadores = [] } = useQuery({
@@ -57,19 +63,47 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
   useEffect(() => {
     if (open) {
       setForm(colaborador ? { ...colaborador } : empty);
+      setErrors({});
+      setTab("pessoais");
     }
   }, [open, colaborador]);
 
-  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setErrors((e) => ({ ...e, [k as string]: undefined }));
+  };
 
   const isEdit = Boolean(colaborador?.id);
 
+  function validate(): Errors {
+    const e: Errors = {};
+    const nome = (form.nome_completo ?? "").trim();
+    if (!nome) e.nome_completo = "Informe o nome completo.";
+    else if (nome.length < 3) e.nome_completo = "O nome deve ter ao menos 3 caracteres.";
+    else if (nome.length > 120) e.nome_completo = "O nome deve ter no máximo 120 caracteres.";
+
+    const cpf = onlyDigits(form.cpf ?? "");
+    if (!cpf) e.cpf = "Informe o CPF.";
+    else if (cpf.length !== 11) e.cpf = "O CPF deve conter 11 dígitos.";
+
+    if (!form.tomador_id) e.tomador_id = "Selecione o tomador responsável.";
+
+    const email = (form.email ?? "").trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
+      e.email = "Informe um e-mail válido.";
+
+    return e;
+  }
+
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!form.nome_completo?.trim()) throw new Error("Nome completo é obrigatório");
-      if (!form.cpf?.trim()) throw new Error("CPF é obrigatório");
-      if (!form.tomador_id) throw new Error("Tomador é obrigatório");
+      const e = validate();
+      setErrors(e);
+      if (Object.keys(e).length > 0) {
+        if (e.nome_completo || e.cpf || e.email) setTab("pessoais");
+        else if (e.tomador_id) setTab("contratuais");
+        throw new Error("Verifique os campos destacados antes de salvar.");
+      }
       const payload = { ...form } as ColaboradorInsert;
       if (isEdit && colaborador) {
         return updateColaborador(colaborador.id, payload);
@@ -78,18 +112,20 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["colaboradores"] });
-      toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
+      toast.success(
+        isEdit ? "Colaborador atualizado com sucesso" : "Colaborador cadastrado com sucesso",
+      );
       onOpenChange(false);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message || "Não foi possível salvar o colaborador"),
   });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle className="text-xl">
-            {isEdit ? "Editar Colaborador" : "Novo Colaborador"}
+            {isEdit ? "Editar colaborador" : "Novo colaborador"}
           </SheetTitle>
           <SheetDescription>
             Preencha os dados abaixo. Os campos com * são obrigatórios.
@@ -103,8 +139,8 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
             </div>
           )}
 
-          <Tabs defaultValue="pessoais">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="pessoais">Pessoais</TabsTrigger>
               <TabsTrigger value="contratuais">Contratuais</TabsTrigger>
               <TabsTrigger value="endereco">Endereço</TabsTrigger>
@@ -112,21 +148,30 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
             </TabsList>
 
             <TabsContent value="pessoais" className="space-y-3 pt-4">
-              <Field label="Nome completo *">
+              <Field label="Nome completo *" error={errors.nome_completo}>
                 <Input
                   value={form.nome_completo ?? ""}
+                  aria-invalid={Boolean(errors.nome_completo)}
                   onChange={(e) => set("nome_completo", e.target.value)}
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="CPF *">
-                  <Input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} />
+
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="CPF *" error={errors.cpf}>
+                  <Input
+                    inputMode="numeric"
+                    maxLength={14}
+                    aria-invalid={Boolean(errors.cpf)}
+                    value={form.cpf ?? ""}
+                    onChange={(e) => set("cpf", e.target.value)}
+                  />
                 </Field>
                 <Field label="RG">
                   <Input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Órgão emissor">
                   <Input
                     value={form.rg_orgao_emissor ?? ""}
@@ -141,7 +186,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Sexo">
                   <Select
                     value={form.sexo ?? undefined}
@@ -175,7 +220,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   </Select>
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Nacionalidade">
                   <Input
                     value={form.nacionalidade ?? ""}
@@ -189,9 +234,10 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <Field label="E-mail">
+              <Field label="E-mail" error={errors.email}>
                 <Input
                   type="email"
+                  aria-invalid={Boolean(errors.email)}
                   value={form.email ?? ""}
                   onChange={(e) => set("email", e.target.value)}
                 />
@@ -199,7 +245,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
             </TabsContent>
 
             <TabsContent value="contratuais" className="space-y-3 pt-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Matrícula">
                   <Input
                     value={form.matricula ?? ""}
@@ -214,7 +260,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Cargo">
                   <Input value={form.cargo ?? ""} onChange={(e) => set("cargo", e.target.value)} />
                 </Field>
@@ -225,7 +271,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Departamento">
                   <Input
                     value={form.departamento ?? ""}
@@ -250,7 +296,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   </Select>
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Salário (R$)">
                   <Input
                     type="number"
@@ -271,7 +317,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <Field label="Tomador *">
+              <Field label="Tomador *" error={errors.tomador_id}>
                 <Select
                   value={form.tomador_id ?? undefined}
                   onValueChange={(v) => set("tomador_id", v)}
@@ -288,7 +334,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Banco">
                   <Input value={form.banco ?? ""} onChange={(e) => set("banco", e.target.value)} />
                 </Field>
@@ -328,7 +374,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
             </TabsContent>
 
             <TabsContent value="endereco" className="space-y-3 pt-4">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="CEP">
                   <Input value={form.cep ?? ""} onChange={(e) => set("cep", e.target.value)} />
                 </Field>
@@ -341,7 +387,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   </Field>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Número">
                   <Input
                     value={form.numero ?? ""}
@@ -357,7 +403,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   </Field>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Bairro">
                   <Input
                     value={form.bairro ?? ""}
@@ -381,7 +427,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
             </TabsContent>
 
             <TabsContent value="documentos" className="space-y-3 pt-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="CTPS nº">
                   <Input
                     value={form.ctps_numero ?? ""}
@@ -401,7 +447,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   onChange={(e) => set("pis_pasep", e.target.value)}
                 />
               </Field>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Título de eleitor">
                   <Input
                     value={form.titulo_eleitor ?? ""}
@@ -448,11 +494,24 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
+      {error && (
+        <p role="alert" className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
