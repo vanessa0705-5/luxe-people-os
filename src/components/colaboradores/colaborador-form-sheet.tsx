@@ -157,21 +157,6 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
               </Field>
 
 
-          <Tabs defaultValue="pessoais">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="pessoais">Pessoais</TabsTrigger>
-              <TabsTrigger value="contratuais">Contratuais</TabsTrigger>
-              <TabsTrigger value="endereco">Endereço</TabsTrigger>
-              <TabsTrigger value="documentos">Documentos</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="pessoais" className="space-y-3 pt-4">
-              <Field label="Nome completo *">
-                <Input
-                  value={form.nome_completo ?? ""}
-                  onChange={(e) => set("nome_completo", e.target.value)}
-                />
-              </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="CPF *">
                   <Input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} />
