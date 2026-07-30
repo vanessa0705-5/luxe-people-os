@@ -43,33 +43,91 @@ export interface ColaboradorComTomador extends Colaborador {
   tomador: Pick<Tomador, "id" | "razao_social" | "cnpj"> | null;
 }
 
-export async function listColaboradores(params?: {
+export interface ListColaboradoresParams {
   search?: string;
   status?: StatusColaborador | "todos";
   tomadorId?: string | "todos";
-}): Promise<ColaboradorComTomador[]> {
-  let query = supabase
-    .from("colaboradores")
-    .select("*, tomador:tomadores(id, razao_social, cnpj)")
-    .order("nome_completo", { ascending: true });
+  departamento?: string | "todos";
+  page?: number;
+  pageSize?: number;
+}
 
-  if (params?.status && params.status !== "todos") {
-    query = query.eq("status", params.status);
-  }
-  if (params?.tomadorId && params.tomadorId !== "todos") {
-    query = query.eq("tomador_id", params.tomadorId);
-  }
+function applyFilters<T extends { eq: unknown }>(query: T, params?: ListColaboradoresParams): T {
+  let q = query as never as {
+    eq: (c: string, v: string) => typeof q;
+    or: (v: string) => typeof q;
+  };
+  if (params?.status && params.status !== "todos") q = q.eq("status", params.status);
+  if (params?.tomadorId && params.tomadorId !== "todos") q = q.eq("tomador_id", params.tomadorId);
+  if (params?.departamento && params.departamento !== "todos")
+    q = q.eq("departamento", params.departamento);
   if (params?.search && params.search.trim()) {
-    const s = params.search.trim();
-    query = query.or(
-      `nome_completo.ilike.%${s}%,cpf.ilike.%${s}%,matricula.ilike.%${s}%`,
+    const s = params.search.trim().replace(/[%,]/g, "");
+    q = q.or(
+      `nome_completo.ilike.%${s}%,cpf.ilike.%${s}%,matricula.ilike.%${s}%,email.ilike.%${s}%`,
     );
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as ColaboradorComTomador[];
+  return q as never as T;
 }
+
+export interface PagedColaboradores {
+  rows: ColaboradorComTomador[];
+  total: number;
+}
+
+export async function listColaboradoresPaged(
+  params?: ListColaboradoresParams,
+): Promise<PagedColaboradores> {
+  const page = Math.max(1, params?.page ?? 1);
+  const pageSize = params?.pageSize ?? 10;
+  const from = (page - 1) * pageSize;
+
+  const base = supabase
+    .from("colaboradores")
+    .select("*, tomador:tomadores(id, razao_social, cnpj)", { count: "exact" })
+    .order("nome_completo", { ascending: true })
+    .range(from, from + pageSize - 1);
+
+  const { data, error, count } = await applyFilters(base as never, params);
+  if (error) throw error;
+  return { rows: (data ?? []) as ColaboradorComTomador[], total: count ?? 0 };
+}
+
+export interface ColaboradoresResumo {
+  total: number;
+  ativos: number;
+  ferias: number;
+  departamentos: string[];
+}
+
+export async function getColaboradoresResumo(): Promise<ColaboradoresResumo> {
+  const { data, error } = await supabase
+    .from("colaboradores")
+    .select("status, departamento");
+  if (error) throw error;
+  const rows = data ?? [];
+  const departamentos = Array.from(
+    new Set(
+      rows
+        .map((r) => (r.departamento ?? "").trim())
+        .filter((d): d is string => d.length > 0),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  return {
+    total: rows.length,
+    ativos: rows.filter((r) => r.status === "ativo").length,
+    ferias: rows.filter((r) => r.status === "ferias").length,
+    departamentos,
+  };
+}
+
+export async function listColaboradores(
+  params?: ListColaboradoresParams,
+): Promise<ColaboradorComTomador[]> {
+  const { rows } = await listColaboradoresPaged({ ...params, page: 1, pageSize: 1000 });
+  return rows;
+}
+
 
 export async function getColaborador(id: string): Promise<ColaboradorComTomador> {
   const { data, error } = await supabase
