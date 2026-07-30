@@ -44,8 +44,14 @@ const empty: FormState = {
   status: "ativo",
 };
 
+type Errors = Partial<Record<"nome_completo" | "cpf" | "tomador_id" | "email", string>>;
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
 export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props) {
   const [form, setForm] = useState<FormState>(empty);
+  const [errors, setErrors] = useState<Errors>({});
+  const [tab, setTab] = useState("pessoais");
   const qc = useQueryClient();
 
   const { data: tomadores = [] } = useQuery({
@@ -57,19 +63,47 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
   useEffect(() => {
     if (open) {
       setForm(colaborador ? { ...colaborador } : empty);
+      setErrors({});
+      setTab("pessoais");
     }
   }, [open, colaborador]);
 
-  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setErrors((e) => ({ ...e, [k as string]: undefined }));
+  };
 
   const isEdit = Boolean(colaborador?.id);
 
+  function validate(): Errors {
+    const e: Errors = {};
+    const nome = (form.nome_completo ?? "").trim();
+    if (!nome) e.nome_completo = "Informe o nome completo.";
+    else if (nome.length < 3) e.nome_completo = "O nome deve ter ao menos 3 caracteres.";
+    else if (nome.length > 120) e.nome_completo = "O nome deve ter no máximo 120 caracteres.";
+
+    const cpf = onlyDigits(form.cpf ?? "");
+    if (!cpf) e.cpf = "Informe o CPF.";
+    else if (cpf.length !== 11) e.cpf = "O CPF deve conter 11 dígitos.";
+
+    if (!form.tomador_id) e.tomador_id = "Selecione o tomador responsável.";
+
+    const email = (form.email ?? "").trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
+      e.email = "Informe um e-mail válido.";
+
+    return e;
+  }
+
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!form.nome_completo?.trim()) throw new Error("Nome completo é obrigatório");
-      if (!form.cpf?.trim()) throw new Error("CPF é obrigatório");
-      if (!form.tomador_id) throw new Error("Tomador é obrigatório");
+      const e = validate();
+      setErrors(e);
+      if (Object.keys(e).length > 0) {
+        if (e.nome_completo || e.cpf || e.email) setTab("pessoais");
+        else if (e.tomador_id) setTab("contratuais");
+        throw new Error("Verifique os campos destacados antes de salvar.");
+      }
       const payload = { ...form } as ColaboradorInsert;
       if (isEdit && colaborador) {
         return updateColaborador(colaborador.id, payload);
@@ -78,18 +112,20 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["colaboradores"] });
-      toast.success(isEdit ? "Colaborador atualizado" : "Colaborador cadastrado");
+      toast.success(
+        isEdit ? "Colaborador atualizado com sucesso" : "Colaborador cadastrado com sucesso",
+      );
       onOpenChange(false);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message || "Não foi possível salvar o colaborador"),
   });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle className="text-xl">
-            {isEdit ? "Editar Colaborador" : "Novo Colaborador"}
+            {isEdit ? "Editar colaborador" : "Novo colaborador"}
           </SheetTitle>
           <SheetDescription>
             Preencha os dados abaixo. Os campos com * são obrigatórios.
@@ -102,6 +138,24 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
               Nenhum tomador cadastrado. Cadastre um tomador antes de criar colaboradores.
             </div>
           )}
+
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="pessoais">Pessoais</TabsTrigger>
+              <TabsTrigger value="contratuais">Contratuais</TabsTrigger>
+              <TabsTrigger value="endereco">Endereço</TabsTrigger>
+              <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pessoais" className="space-y-3 pt-4">
+              <Field label="Nome completo *" error={errors.nome_completo}>
+                <Input
+                  value={form.nome_completo ?? ""}
+                  aria-invalid={Boolean(errors.nome_completo)}
+                  onChange={(e) => set("nome_completo", e.target.value)}
+                />
+              </Field>
+
 
           <Tabs defaultValue="pessoais">
             <TabsList className="grid w-full grid-cols-4">
