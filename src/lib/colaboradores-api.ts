@@ -52,24 +52,6 @@ export interface ListColaboradoresParams {
   pageSize?: number;
 }
 
-function applyFilters<T extends { eq: unknown }>(query: T, params?: ListColaboradoresParams): T {
-  let q = query as never as {
-    eq: (c: string, v: string) => typeof q;
-    or: (v: string) => typeof q;
-  };
-  if (params?.status && params.status !== "todos") q = q.eq("status", params.status);
-  if (params?.tomadorId && params.tomadorId !== "todos") q = q.eq("tomador_id", params.tomadorId);
-  if (params?.departamento && params.departamento !== "todos")
-    q = q.eq("departamento", params.departamento);
-  if (params?.search && params.search.trim()) {
-    const s = params.search.trim().replace(/[%,]/g, "");
-    q = q.or(
-      `nome_completo.ilike.%${s}%,cpf.ilike.%${s}%,matricula.ilike.%${s}%,email.ilike.%${s}%`,
-    );
-  }
-  return q as never as T;
-}
-
 export interface PagedColaboradores {
   rows: ColaboradorComTomador[];
   total: number;
@@ -82,16 +64,28 @@ export async function listColaboradoresPaged(
   const pageSize = params?.pageSize ?? 10;
   const from = (page - 1) * pageSize;
 
-  const base = supabase
+  let query = supabase
     .from("colaboradores")
     .select("*, tomador:tomadores(id, razao_social, cnpj)", { count: "exact" })
-    .order("nome_completo", { ascending: true })
-    .range(from, from + pageSize - 1);
+    .order("nome_completo", { ascending: true });
 
-  const { data, error, count } = await applyFilters(base as never, params);
+  if (params?.status && params.status !== "todos") query = query.eq("status", params.status);
+  if (params?.tomadorId && params.tomadorId !== "todos")
+    query = query.eq("tomador_id", params.tomadorId);
+  if (params?.departamento && params.departamento !== "todos")
+    query = query.eq("departamento", params.departamento);
+  if (params?.search && params.search.trim()) {
+    const s = params.search.trim().replace(/[%,()]/g, "");
+    query = query.or(
+      `nome_completo.ilike.%${s}%,cpf.ilike.%${s}%,matricula.ilike.%${s}%,email.ilike.%${s}%`,
+    );
+  }
+
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) throw error;
   return { rows: (data ?? []) as ColaboradorComTomador[], total: count ?? 0 };
 }
+
 
 export interface ColaboradoresResumo {
   total: number;
