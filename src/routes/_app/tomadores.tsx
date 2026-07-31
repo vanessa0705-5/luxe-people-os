@@ -55,11 +55,21 @@ export const Route = createFileRoute("/_app/tomadores")({
 type Coordenador = {
   id: string;
   tomador_id: string;
+  colaborador_id: string | null;
   nome_completo: string;
   cargo: string | null;
   email: string | null;
   telefone: string | null;
   is_active: boolean;
+};
+
+type ColaboradorCoordenacao = {
+  id: string;
+  nome_completo: string;
+  cargo: string | null;
+  funcao: string | null;
+  email: string | null;
+  telefone: string | null;
 };
 
 type Tomador = {
@@ -97,6 +107,7 @@ type TomadorForm = {
 };
 
 type CoordenadorForm = {
+  colaborador_id: string;
   nome_completo: string;
   cargo: string;
   email: string;
@@ -123,6 +134,7 @@ const tomadorVazio: TomadorForm = {
 };
 
 const coordenadorVazio: CoordenadorForm = {
+  colaborador_id: "",
   nome_completo: "",
   cargo: "",
   email: "",
@@ -164,6 +176,9 @@ function TomadoresPage() {
   const { hasRole, canDelete, user } = useAuth();
   const podeGerenciar = hasRole("admin_principal") || hasRole("rh");
   const [tomadores, setTomadores] = useState<Tomador[]>([]);
+  const [colaboradoresCoordenacao, setColaboradoresCoordenacao] = useState<
+    ColaboradorCoordenacao[]
+  >([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [busca, setBusca] = useState("");
@@ -177,16 +192,43 @@ function TomadoresPage() {
 
   async function carregarTomadores() {
     setCarregando(true);
-    const { data, error } = await db
-      .from("tomadores")
-      .select("*, tomador_coordenadores(*)")
-      .order("razao_social");
+    const [resultadoTomadores, resultadoColaboradores] = await Promise.all([
+      db
+        .from("tomadores")
+        .select("*, tomador_coordenadores(*)")
+        .order("razao_social"),
+      db
+        .from("colaboradores")
+        .select("id, nome_completo, cargo, funcao, email, telefone")
+        .eq("status", "ativo")
+        .order("nome_completo"),
+    ]);
 
-    if (error) {
+    if (resultadoTomadores.error) {
       toast.error("Não foi possível carregar os tomadores.");
     } else {
-      setTomadores((data ?? []) as Tomador[]);
+      setTomadores((resultadoTomadores.data ?? []) as Tomador[]);
     }
+
+    if (resultadoColaboradores.error) {
+      toast.error("Não foi possível carregar os colaboradores com cargo de coordenação.");
+    } else {
+      const elegiveis = (
+        (resultadoColaboradores.data ?? []) as ColaboradorCoordenacao[]
+      ).filter((colaborador) => {
+        const cargoFuncao = [
+          colaborador.cargo ?? "",
+          colaborador.funcao ?? "",
+        ]
+          .join(" ")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
+        return cargoFuncao.includes("coorden");
+      });
+      setColaboradoresCoordenacao(elegiveis);
+    }
+
     setCarregando(false);
   }
 
@@ -255,6 +297,7 @@ function TomadoresPage() {
     setFormCoordenador(
       coordenador
         ? {
+            colaborador_id: coordenador.colaborador_id ?? "",
             nome_completo: coordenador.nome_completo,
             cargo: coordenador.cargo ?? "",
             email: coordenador.email ?? "",
@@ -321,9 +364,27 @@ function TomadoresPage() {
     await carregarTomadores();
   }
 
+  function selecionarColaboradorCoordenador(colaboradorId: string) {
+    const colaborador = colaboradoresCoordenacao.find(
+      (item) => item.id === colaboradorId,
+    );
+    if (!colaborador) {
+      setFormCoordenador(coordenadorVazio);
+      return;
+    }
+    setFormCoordenador({
+      colaborador_id: colaborador.id,
+      nome_completo: colaborador.nome_completo,
+      cargo: colaborador.cargo ?? colaborador.funcao ?? "",
+      email: colaborador.email ?? "",
+      telefone: colaborador.telefone ?? "",
+      is_active: true,
+    });
+  }
+
   async function salvarCoordenador() {
-    if (!tomadorDoCoordenador || !formCoordenador.nome_completo.trim()) {
-      toast.error("Informe o nome do coordenador responsável.");
+    if (!tomadorDoCoordenador || !formCoordenador.colaborador_id) {
+      toast.error("Selecione um colaborador com cargo de coordenação.");
       return;
     }
 
@@ -339,6 +400,7 @@ function TomadoresPage() {
     const { error } = await db.from("tomador_coordenadores").upsert(
       {
         tomador_id: tomadorDoCoordenador.id,
+        colaborador_id: formCoordenador.colaborador_id,
         nome_completo: formCoordenador.nome_completo.trim(),
         cargo: formCoordenador.cargo.trim() || null,
         email: formCoordenador.email.trim() || null,
@@ -749,7 +811,34 @@ function TomadoresPage() {
 
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label htmlFor="coordenador-nome">Nome completo *</Label>
+              <Label htmlFor="coordenador-colaborador">
+                Colaborador com cargo de coordenação *
+              </Label>
+              <select
+                id="coordenador-colaborador"
+                value={formCoordenador.colaborador_id}
+                onChange={(event) =>
+                  selecionarColaboradorCoordenador(event.target.value)
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Selecione um colaborador</option>
+                {colaboradoresCoordenacao.map((colaborador) => (
+                  <option key={colaborador.id} value={colaborador.id}>
+                    {colaborador.nome_completo} —{" "}
+                    {colaborador.cargo || colaborador.funcao || "Coordenação"}
+                  </option>
+                ))}
+              </select>
+              {colaboradoresCoordenacao.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum colaborador ativo com cargo ou função de coordenação foi
+                  encontrado. Atualize o cargo no cadastro do colaborador.
+                </p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="coordenador-nome">Nome completo</Label>
               <Input
                 id="coordenador-nome"
                 value={formCoordenador.nome_completo}
