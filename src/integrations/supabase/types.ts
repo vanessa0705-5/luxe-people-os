@@ -240,6 +240,84 @@ export type Database = {
           },
         ]
       }
+      empresas: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnae: string | null
+          cnpj: string
+          complemento: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logradouro: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          observacoes: string | null
+          razao_social: string
+          responsavel_nome: string | null
+          status: Database["public"]["Enums"]["status_empresa"]
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnae?: string | null
+          cnpj: string
+          complemento?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          razao_social: string
+          responsavel_nome?: string | null
+          status?: Database["public"]["Enums"]["status_empresa"]
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnae?: string | null
+          cnpj?: string
+          complemento?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          responsavel_nome?: string | null
+          status?: Database["public"]["Enums"]["status_empresa"]
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -278,6 +356,7 @@ export type Database = {
           cnpj: string
           created_at: string
           created_by: string | null
+          empresa_id: string | null
           id: string
           is_active: boolean
           nome_fantasia: string | null
@@ -288,6 +367,7 @@ export type Database = {
           cnpj: string
           created_at?: string
           created_by?: string | null
+          empresa_id?: string | null
           id?: string
           is_active?: boolean
           nome_fantasia?: string | null
@@ -298,13 +378,22 @@ export type Database = {
           cnpj?: string
           created_at?: string
           created_by?: string | null
+          empresa_id?: string | null
           id?: string
           is_active?: boolean
           nome_fantasia?: string | null
           razao_social?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tomadores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -352,6 +441,7 @@ export type Database = {
         | "uniao_estavel"
       sexo: "masculino" | "feminino" | "outro"
       status_colaborador: "ativo" | "afastado" | "ferias" | "desligado"
+      status_empresa: "ativa" | "inativa"
       tipo_contrato: "clt" | "pj" | "temporario" | "estagio" | "terceirizado"
     }
     CompositeTypes: {
@@ -490,6 +580,7 @@ export const Constants = {
       ],
       sexo: ["masculino", "feminino", "outro"],
       status_colaborador: ["ativo", "afastado", "ferias", "desligado"],
+      status_empresa: ["ativa", "inativa"],
       tipo_contrato: ["clt", "pj", "temporario", "estagio", "terceirizado"],
     },
   },
