@@ -44,7 +44,7 @@ const empty: FormState = {
   status: "ativo",
 };
 
-type Errors = Partial<Record<"nome_completo" | "cpf" | "tomador_id" | "email", string>>;
+type Errors = Partial<Record<"nome_completo" | "cpf" | "email", string>>;
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
@@ -86,8 +86,6 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
     if (!cpf) e.cpf = "Informe o CPF.";
     else if (cpf.length !== 11) e.cpf = "O CPF deve conter 11 dígitos.";
 
-    if (!form.tomador_id) e.tomador_id = "Selecione o tomador responsável.";
-
     const email = (form.email ?? "").trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
       e.email = "Informe um e-mail válido.";
@@ -101,7 +99,6 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
       setErrors(e);
       if (Object.keys(e).length > 0) {
         if (e.nome_completo || e.cpf || e.email) setTab("pessoais");
-        else if (e.tomador_id) setTab("contratuais");
         throw new Error("Verifique os campos destacados antes de salvar.");
       }
       const payload = { ...form } as ColaboradorInsert;
@@ -135,7 +132,7 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
         <div className="mt-4 px-4">
           {tomadores.length === 0 && (
             <div className="mb-4 rounded-md border border-dashed border-gold/40 bg-gold/5 p-3 text-xs text-muted-foreground">
-              Nenhum tomador cadastrado. Cadastre um tomador antes de criar colaboradores.
+              Nenhum tomador cadastrado. Você pode continuar e vincular um tomador depois.
             </div>
           )}
 
@@ -317,15 +314,18 @@ export function ColaboradorFormSheet({ open, onOpenChange, colaborador }: Props)
                   />
                 </Field>
               </div>
-              <Field label="Tomador *" error={errors.tomador_id}>
+              <Field label="Tomador (opcional)">
                 <Select
-                  value={form.tomador_id ?? undefined}
-                  onValueChange={(v) => set("tomador_id", v)}
+                  value={form.tomador_id ?? "__sem_tomador__"}
+                  onValueChange={(v) =>
+                    set("tomador_id", v === "__sem_tomador__" ? null : v)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tomador" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__sem_tomador__">Sem tomador</SelectItem>
                     {tomadores.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.razao_social}
