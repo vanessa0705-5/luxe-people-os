@@ -268,11 +268,9 @@ function ColaboradorDetalhePage() {
         </TabsContent>
 
         <TabsContent value="ferias" className="pt-4">
-          <EmptyTab
-            title="Férias"
-            message="O módulo de férias exibirá aqui o histórico e o saldo de férias deste colaborador."
-          />
+          <FeriasColaboradorSection colaboradorId={colaborador.id} />
         </TabsContent>
+
 
         <TabsContent value="movimentacoes" className="pt-4">
           <EmptyTab
