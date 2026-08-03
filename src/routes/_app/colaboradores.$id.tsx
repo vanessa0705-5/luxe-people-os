@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FeriasColaboradorSection } from "@/components/ferias/ferias-colaborador-section";
+
 import {
   createDependente,
   deleteDependente,
