@@ -101,6 +101,7 @@ export type Database = {
           cidade: string | null
           complemento: string | null
           conta: string | null
+          coordenador_id: string | null
           cpf: string
           created_at: string
           created_by: string | null
@@ -114,10 +115,14 @@ export type Database = {
           estado_civil: Database["public"]["Enums"]["estado_civil"] | null
           funcao: string | null
           id: string
+          is_coordenador: boolean | null
           jornada_semanal: number | null
           logradouro: string | null
           matricula: string | null
           nacionalidade: string | null
+          nacionalidade_mae: string | null
+          nacionalidade_pai: string | null
+          naturalidade: string | null
           nome_completo: string
           numero: string | null
           observacoes: string | null
@@ -133,7 +138,7 @@ export type Database = {
           titulo_eleitor: string | null
           titulo_secao: string | null
           titulo_zona: string | null
-          tomador_id: string
+          tomador_id: string | null
           uf: string | null
           updated_at: string
           updated_by: string | null
@@ -147,6 +152,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           conta?: string | null
+          coordenador_id?: string | null
           cpf: string
           created_at?: string
           created_by?: string | null
@@ -160,10 +166,14 @@ export type Database = {
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
           funcao?: string | null
           id?: string
+          is_coordenador?: boolean | null
           jornada_semanal?: number | null
           logradouro?: string | null
           matricula?: string | null
           nacionalidade?: string | null
+          nacionalidade_mae?: string | null
+          nacionalidade_pai?: string | null
+          naturalidade?: string | null
           nome_completo: string
           numero?: string | null
           observacoes?: string | null
@@ -179,7 +189,7 @@ export type Database = {
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
-          tomador_id: string
+          tomador_id?: string | null
           uf?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -193,6 +203,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           conta?: string | null
+          coordenador_id?: string | null
           cpf?: string
           created_at?: string
           created_by?: string | null
@@ -206,10 +217,14 @@ export type Database = {
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
           funcao?: string | null
           id?: string
+          is_coordenador?: boolean | null
           jornada_semanal?: number | null
           logradouro?: string | null
           matricula?: string | null
           nacionalidade?: string | null
+          nacionalidade_mae?: string | null
+          nacionalidade_pai?: string | null
+          naturalidade?: string | null
           nome_completo?: string
           numero?: string | null
           observacoes?: string | null
@@ -225,12 +240,19 @@ export type Database = {
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
-          tomador_id?: string
+          tomador_id?: string | null
           uf?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "colaboradores_coordenador_id_fkey"
+            columns: ["coordenador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "colaboradores_tomador_id_fkey"
             columns: ["tomador_id"]
