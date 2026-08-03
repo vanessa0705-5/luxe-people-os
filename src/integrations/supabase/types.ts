@@ -340,6 +340,68 @@ export type Database = {
         }
         Relationships: []
       }
+      ferias: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          colaborador_id: string
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          id: string
+          motivo_reprovacao: string | null
+          observacoes: string | null
+          periodo_aquisitivo_fim: string | null
+          periodo_aquisitivo_inicio: string | null
+          solicitado_por: string | null
+          status: Database["public"]["Enums"]["status_ferias"]
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          colaborador_id: string
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          dias?: number
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          periodo_aquisitivo_fim?: string | null
+          periodo_aquisitivo_inicio?: string | null
+          solicitado_por?: string | null
+          status?: Database["public"]["Enums"]["status_ferias"]
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          colaborador_id?: string
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          dias?: number
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          periodo_aquisitivo_fim?: string | null
+          periodo_aquisitivo_inicio?: string | null
+          solicitado_por?: string | null
+          status?: Database["public"]["Enums"]["status_ferias"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ferias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -464,6 +526,13 @@ export type Database = {
       sexo: "masculino" | "feminino" | "outro"
       status_colaborador: "ativo" | "afastado" | "ferias" | "desligado"
       status_empresa: "ativa" | "inativa"
+      status_ferias:
+        | "solicitada"
+        | "aprovada"
+        | "reprovada"
+        | "em_gozo"
+        | "concluida"
+        | "cancelada"
       tipo_contrato: "clt" | "pj" | "temporario" | "estagio" | "terceirizado"
     }
     CompositeTypes: {
@@ -603,6 +672,14 @@ export const Constants = {
       sexo: ["masculino", "feminino", "outro"],
       status_colaborador: ["ativo", "afastado", "ferias", "desligado"],
       status_empresa: ["ativa", "inativa"],
+      status_ferias: [
+        "solicitada",
+        "aprovada",
+        "reprovada",
+        "em_gozo",
+        "concluida",
+        "cancelada",
+      ],
       tipo_contrato: ["clt", "pj", "temporario", "estagio", "terceirizado"],
     },
   },
