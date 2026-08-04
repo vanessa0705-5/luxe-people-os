@@ -275,11 +275,9 @@ function ColaboradorDetalhePage() {
 
 
         <TabsContent value="movimentacoes" className="pt-4">
-          <EmptyTab
-            title="Movimentações"
-            message="Histórico de promoções, transferências e demais movimentações será exibido aqui."
-          />
+          <MovimentacoesColaboradorSection colaboradorId={colaborador.id} />
         </TabsContent>
+
       </Tabs>
 
       <ColaboradorFormSheet open={editOpen} onOpenChange={setEditOpen} colaborador={colaborador} />
