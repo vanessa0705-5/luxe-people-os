@@ -402,6 +402,126 @@ export type Database = {
           },
         ]
       }
+      movimentacoes: {
+        Row: {
+          cargo_anterior: string | null
+          cargo_novo: string | null
+          colaborador_id: string
+          coordenador_anterior_id: string | null
+          coordenador_novo_id: string | null
+          created_at: string
+          created_by: string | null
+          data_efeito: string
+          departamento_anterior: string | null
+          departamento_novo: string | null
+          funcao_anterior: string | null
+          funcao_nova: string | null
+          id: string
+          motivo: string | null
+          observacoes: string | null
+          salario_anterior: number | null
+          salario_novo: number | null
+          status_anterior:
+            | Database["public"]["Enums"]["status_colaborador"]
+            | null
+          status_novo: Database["public"]["Enums"]["status_colaborador"] | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          tomador_anterior_id: string | null
+          tomador_novo_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo_anterior?: string | null
+          cargo_novo?: string | null
+          colaborador_id: string
+          coordenador_anterior_id?: string | null
+          coordenador_novo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_efeito?: string
+          departamento_anterior?: string | null
+          departamento_novo?: string | null
+          funcao_anterior?: string | null
+          funcao_nova?: string | null
+          id?: string
+          motivo?: string | null
+          observacoes?: string | null
+          salario_anterior?: number | null
+          salario_novo?: number | null
+          status_anterior?:
+            | Database["public"]["Enums"]["status_colaborador"]
+            | null
+          status_novo?: Database["public"]["Enums"]["status_colaborador"] | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          tomador_anterior_id?: string | null
+          tomador_novo_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo_anterior?: string | null
+          cargo_novo?: string | null
+          colaborador_id?: string
+          coordenador_anterior_id?: string | null
+          coordenador_novo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_efeito?: string
+          departamento_anterior?: string | null
+          departamento_novo?: string | null
+          funcao_anterior?: string | null
+          funcao_nova?: string | null
+          id?: string
+          motivo?: string | null
+          observacoes?: string | null
+          salario_anterior?: number | null
+          salario_novo?: number | null
+          status_anterior?:
+            | Database["public"]["Enums"]["status_colaborador"]
+            | null
+          status_novo?: Database["public"]["Enums"]["status_colaborador"] | null
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
+          tomador_anterior_id?: string | null
+          tomador_novo_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_coordenador_anterior_id_fkey"
+            columns: ["coordenador_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_coordenador_novo_id_fkey"
+            columns: ["coordenador_novo_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_tomador_anterior_id_fkey"
+            columns: ["tomador_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "tomadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_tomador_novo_id_fkey"
+            columns: ["tomador_novo_id"]
+            isOneToOne: false
+            referencedRelation: "tomadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -534,6 +654,14 @@ export type Database = {
         | "concluida"
         | "cancelada"
       tipo_contrato: "clt" | "pj" | "temporario" | "estagio" | "terceirizado"
+      tipo_movimentacao:
+        | "promocao"
+        | "alteracao_salarial"
+        | "transferencia"
+        | "afastamento"
+        | "retorno"
+        | "admissao"
+        | "desligamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -681,6 +809,15 @@ export const Constants = {
         "cancelada",
       ],
       tipo_contrato: ["clt", "pj", "temporario", "estagio", "terceirizado"],
+      tipo_movimentacao: [
+        "promocao",
+        "alteracao_salarial",
+        "transferencia",
+        "afastamento",
+        "retorno",
+        "admissao",
+        "desligamento",
+      ],
     },
   },
 } as const
