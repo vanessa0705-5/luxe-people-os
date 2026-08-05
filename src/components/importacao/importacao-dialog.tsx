@@ -44,6 +44,8 @@ interface Props {
   empresaId?: string | null;
   /** Chaves de cache invalidadas após a importação. */
   invalidateKeys?: string[];
+  /** Executado após uma importação com registros gravados. */
+  onImportado?: () => void;
 }
 
 export function ImportacaoDialog({
@@ -53,6 +55,7 @@ export function ImportacaoDialog({
   tomadorId,
   empresaId,
   invalidateKeys,
+  onImportado,
 }: Props) {
   const cfg = MODULOS_IMPORTACAO[modulo];
   const queryClient = useQueryClient();
@@ -114,6 +117,7 @@ export function ImportacaoDialog({
         queryClient.invalidateQueries({ queryKey: [key] });
       }
       if (resultado.inseridos > 0) {
+        onImportado?.();
         toast.success(`${resultado.inseridos} registro(s) importado(s) com sucesso.`);
       }
       if (resultado.erros.length > 0) {

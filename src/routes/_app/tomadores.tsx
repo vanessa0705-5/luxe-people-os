@@ -938,6 +938,7 @@ function TomadoresPage() {
         onOpenChange={setImportOpen}
         modulo="tomadores"
         invalidateKeys={["tomadores"]}
+        onImportado={() => void carregarTomadores()}
       />
     </PageShell>
   );
