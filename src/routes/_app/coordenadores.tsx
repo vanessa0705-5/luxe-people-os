@@ -320,8 +320,8 @@ function CoordenadoresPage() {
               Confirmar
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
+
       </Dialog>
     </PageShell>
   );
