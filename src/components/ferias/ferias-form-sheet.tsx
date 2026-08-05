@@ -92,7 +92,27 @@ export function FeriasFormSheet({ open, onOpenChange, registro, colaboradorIdFix
     }
   }, [open, registro, colaboradorIdFixo]);
 
+  const colaboradorSelecionado = useMemo(
+    () => colaboradores.find((c) => c.id === form.colaborador_id) ?? null,
+    [colaboradores, form.colaborador_id],
+  );
+
+  // Preenche o período aquisitivo automaticamente a partir da data de admissão.
+  useEffect(() => {
+    if (!open) return;
+    const admissao = colaboradorSelecionado?.data_admissao;
+    if (!admissao) return;
+    const sugestao = periodoAquisitivoSugerido(admissao);
+    if (!sugestao) return;
+    setForm((f) =>
+      f.periodo_aquisitivo_inicio || f.periodo_aquisitivo_fim
+        ? f
+        : { ...f, periodo_aquisitivo_inicio: sugestao.inicio, periodo_aquisitivo_fim: sugestao.fim },
+    );
+  }, [open, colaboradorSelecionado]);
+
   const dias = useMemo(() => calcularDias(form.data_inicio, form.data_fim), [form]);
+
 
   const mutation = useMutation({
     mutationFn: async () => {
