@@ -61,6 +61,8 @@ import {
   type StatusEmpresa,
 } from "@/lib/empresas-api";
 import { EmpresaFormSheet } from "@/components/empresas/empresa-form-sheet";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
+import { Upload } from "lucide-react";
 import { EmpresaDetalhesSheet } from "@/components/empresas/empresa-detalhes-sheet";
 import { maskCnpj, maskTelefone } from "@/lib/br-format";
 
@@ -234,20 +236,29 @@ function EmpresasPage() {
     );
   }
 
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
     <PageShell
       title="Empresas (CNPJs)"
       description="Cadastro e controle das empresas do grupo, seus CNPJs, endereços e contatos."
       icon={<Building2 className="h-5 w-5 text-gold-foreground" />}
       actions={
-        canManage ? (
+        <>
+          {canManage && (
+            <Button variant="outline" className="border-border" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
+            </Button>
+          )}
+          {canManage ? (
           <Button
             onClick={abrirNova}
             className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
           >
             <Plus className="mr-1 h-4 w-4" /> Nova empresa
           </Button>
-        ) : undefined
+        ) : undefined}
+        </>
       }
     >
       <div className="space-y-6">
@@ -526,6 +537,12 @@ function EmpresasPage() {
       </div>
 
       <EmpresaFormSheet open={formOpen} onOpenChange={setFormOpen} empresa={selected} />
+      <ImportacaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        modulo="empresas"
+        invalidateKeys={["empresas", "colaboradores"]}
+      />
       <EmpresaDetalhesSheet
         open={detalhesOpen}
         onOpenChange={setDetalhesOpen}

@@ -555,38 +555,122 @@ export type Database = {
         }
         Relationships: []
       }
-      tomadores: {
+      tomador_coordenadores: {
         Row: {
-          cnpj: string
+          cargo: string | null
+          colaborador_id: string | null
           created_at: string
           created_by: string | null
-          empresa_id: string | null
+          email: string | null
           id: string
           is_active: boolean
-          nome_fantasia: string | null
-          razao_social: string
+          nome_completo: string
+          telefone: string | null
+          tomador_id: string
           updated_at: string
         }
         Insert: {
-          cnpj: string
+          cargo?: string | null
+          colaborador_id?: string | null
           created_at?: string
           created_by?: string | null
-          empresa_id?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean
-          nome_fantasia?: string | null
-          razao_social: string
+          nome_completo: string
+          telefone?: string | null
+          tomador_id: string
           updated_at?: string
         }
         Update: {
-          cnpj?: string
+          cargo?: string | null
+          colaborador_id?: string | null
           created_at?: string
           created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          nome_completo?: string
+          telefone?: string | null
+          tomador_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tomador_coordenadores_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tomador_coordenadores_tomador_id_fkey"
+            columns: ["tomador_id"]
+            isOneToOne: false
+            referencedRelation: "tomadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tomadores: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          complemento: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          empresa_id: string | null
+          id: string
+          is_active: boolean
+          logradouro: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          razao_social: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          complemento?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
           empresa_id?: string | null
           id?: string
           is_active?: boolean
+          logradouro?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
+          razao_social: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          complemento?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          id?: string
+          is_active?: boolean
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
           razao_social?: string
+          telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Relationships: [

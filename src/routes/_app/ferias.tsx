@@ -52,6 +52,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FeriasFormSheet } from "@/components/ferias/ferias-form-sheet";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
+import { Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getColaboradoresResumo } from "@/lib/colaboradores-api";
 import {
@@ -205,13 +207,21 @@ function FeriasPage() {
     },
   ];
 
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
     <PageShell
       title="Férias"
       description="Solicitações, aprovações e programação de férias dos colaboradores."
       icon={<Palmtree className="h-5 w-5 text-gold-foreground" />}
       actions={
-        podeSolicitar ? (
+        <>
+          {podeSolicitar && (
+            <Button variant="outline" className="border-border" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
+            </Button>
+          )}
+          {podeSolicitar ? (
           <Button
             onClick={() => {
               setEditando(null);
@@ -221,7 +231,8 @@ function FeriasPage() {
           >
             <Plus className="mr-1 h-4 w-4" /> Nova solicitação
           </Button>
-        ) : undefined
+        ) : undefined}
+        </>
       }
     >
       <div className="flex flex-col gap-6">
@@ -486,6 +497,12 @@ function FeriasPage() {
       </div>
 
       <FeriasFormSheet open={sheetOpen} onOpenChange={setSheetOpen} registro={editando} />
+      <ImportacaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        modulo="ferias"
+        invalidateKeys={["ferias", "colaboradores"]}
+      />
 
       <AlertDialog open={!!paraExcluir} onOpenChange={(o) => !o && setParaExcluir(null)}>
         <AlertDialogContent>

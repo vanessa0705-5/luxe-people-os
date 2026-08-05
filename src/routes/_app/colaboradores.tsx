@@ -68,6 +68,8 @@ import {
   type StatusColaborador,
 } from "@/lib/colaboradores-api";
 import { ColaboradorFormSheet } from "@/components/colaboradores/colaborador-form-sheet";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
+import { Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/colaboradores")({
   head: () => ({
@@ -198,13 +200,21 @@ function ColaboradoresPage() {
     { label: "Departamentos", value: resumo?.departamentos.length, icon: Building2 },
   ];
 
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
     <PageShell
       title="Colaboradores"
       description="Cadastro, busca e gestão completa do quadro de colaboradores."
       icon={<Users className="h-5 w-5 text-gold-foreground" aria-hidden="true" />}
       actions={
-        canManage && (
+        <>
+          {canManage && (
+            <Button variant="outline" className="border-border" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
+            </Button>
+          )}
+          {canManage && (
           <Button
             className="w-full bg-gradient-gold font-semibold shadow-gold hover:opacity-95 md:w-auto"
             onClick={() => {
@@ -214,7 +224,8 @@ function ColaboradoresPage() {
           >
             <Plus className="mr-1 h-4 w-4" aria-hidden="true" /> Novo colaborador
           </Button>
-        )
+        )}
+        </>
       }
     >
       {/* Cartões de resumo */}
@@ -527,6 +538,12 @@ function ColaboradoresPage() {
       )}
 
       <ColaboradorFormSheet open={formOpen} onOpenChange={setFormOpen} colaborador={editing} />
+      <ImportacaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        modulo="colaboradores"
+        invalidateKeys={["colaboradores", "colaboradores"]}
+      />
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
