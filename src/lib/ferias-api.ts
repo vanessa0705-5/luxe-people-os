@@ -172,6 +172,41 @@ export function calcularDias(inicio: string, fim: string): number {
   return Math.round((b - a) / 86400000) + 1;
 }
 
+function toIso(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
+ * Sugere o período aquisitivo a partir da data de admissão.
+ * Retorna o último período completo de 12 meses; se ainda não houver período
+ * completo, devolve o período em curso (primeiro ano de vínculo).
+ */
+export function periodoAquisitivoSugerido(
+  dataAdmissao: string | null | undefined,
+  referencia: Date = new Date(),
+): { inicio: string; fim: string } | null {
+  if (!dataAdmissao) return null;
+  const admissao = new Date(`${dataAdmissao.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(admissao.getTime())) return null;
+
+  let anos = referencia.getFullYear() - admissao.getFullYear();
+  const aniversario = new Date(admissao);
+  aniversario.setFullYear(admissao.getFullYear() + anos);
+  if (aniversario.getTime() > referencia.getTime()) anos -= 1;
+  const completos = Math.max(anos, 0);
+
+  const inicio = new Date(admissao);
+  inicio.setFullYear(admissao.getFullYear() + Math.max(completos - 1, 0));
+  const fim = new Date(inicio);
+  fim.setFullYear(inicio.getFullYear() + 1);
+  fim.setDate(fim.getDate() - 1);
+
+  return { inicio: toIso(inicio), fim: toIso(fim) };
+}
+
+
 export function formatarData(value: string | null): string {
   if (!value) return "—";
   const d = new Date(`${value.slice(0, 10)}T00:00:00`);
