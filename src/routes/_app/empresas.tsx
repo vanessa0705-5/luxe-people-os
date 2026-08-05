@@ -223,7 +223,7 @@ function EmpresasPage() {
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </DropdownMenuItem>
           )}
-          {canDelete && (
+          {{canDelete && (
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setToDelete(empresa)}
@@ -257,7 +257,7 @@ function EmpresasPage() {
           >
             <Plus className="mr-1 h-4 w-4" /> Nova empresa
           </Button>
-        ) : undefined
+        ) : undefined}
         </>
       }
     >

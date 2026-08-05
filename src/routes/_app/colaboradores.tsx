@@ -214,7 +214,7 @@ function ColaboradoresPage() {
               <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
             </Button>
           )}
-        canManage && (
+          {canManage && (
           <Button
             className="w-full bg-gradient-gold font-semibold shadow-gold hover:opacity-95 md:w-auto"
             onClick={() => {
@@ -224,7 +224,7 @@ function ColaboradoresPage() {
           >
             <Plus className="mr-1 h-4 w-4" aria-hidden="true" /> Novo colaborador
           </Button>
-        )
+        )}
         </>
       }
     >

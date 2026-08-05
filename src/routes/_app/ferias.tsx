@@ -221,7 +221,7 @@ function FeriasPage() {
               <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
             </Button>
           )}
-        podeSolicitar ? (
+          {podeSolicitar ? (
           <Button
             onClick={() => {
               setEditando(null);
@@ -231,7 +231,7 @@ function FeriasPage() {
           >
             <Plus className="mr-1 h-4 w-4" /> Nova solicitação
           </Button>
-        ) : undefined
+        ) : undefined}
         </>
       }
     >
