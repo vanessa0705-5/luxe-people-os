@@ -225,6 +225,33 @@ export function FeriasFormSheet({ open, onOpenChange, registro, colaboradorIdFix
             </div>
           </div>
 
+          {colaboradorSelecionado?.data_admissao && (
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-accent/30 px-4 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-muted-foreground">
+                Admissão em {formatarData(colaboradorSelecionado.data_admissao)} — período
+                aquisitivo preenchido automaticamente.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const s = periodoAquisitivoSugerido(colaboradorSelecionado.data_admissao);
+                  if (!s) return;
+                  setForm((f) => ({
+                    ...f,
+                    periodo_aquisitivo_inicio: s.inicio,
+                    periodo_aquisitivo_fim: s.fim,
+                  }));
+                }}
+              >
+                Recalcular
+              </Button>
+            </div>
+          )}
+
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="inicio">Início das férias *</Label>
