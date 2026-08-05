@@ -25,10 +25,13 @@ import {
   STATUS_FERIAS_ORDER,
   calcularDias,
   createFerias,
+  formatarData,
+  periodoAquisitivoSugerido,
   updateFerias,
   type FeriasComColaborador,
   type StatusFerias,
 } from "@/lib/ferias-api";
+
 import { useAuth } from "@/lib/auth-context";
 
 interface Props {
