@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
+import { Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/tomadores")({
   head: () => ({
@@ -449,6 +451,8 @@ function TomadoresPage() {
     { label: "Com endereço", value: resumo.enderecos, icon: MapPin },
   ];
 
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
     <PageShell
       title="Tomadores"
@@ -456,12 +460,21 @@ function TomadoresPage() {
       icon={<Factory className="h-5 w-5 text-gold-foreground" />}
       actions={
         podeGerenciar ? (
-          <Button
-            onClick={abrirNovo}
-            className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
-          >
-            <Plus className="mr-1 h-4 w-4" /> Novo tomador
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              className="border-border"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
+            </Button>
+            <Button
+              onClick={abrirNovo}
+              className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
+            >
+              <Plus className="mr-1 h-4 w-4" /> Novo tomador
+            </Button>
+          </>
         ) : null
       }
     >
@@ -920,6 +933,12 @@ function TomadoresPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ImportacaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        modulo="tomadores"
+        invalidateKeys={["tomadores"]}
+      />
     </PageShell>
   );
 }
