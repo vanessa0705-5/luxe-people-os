@@ -223,7 +223,7 @@ function EmpresasPage() {
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </DropdownMenuItem>
           )}
-          {{canDelete && (
+          {canDelete && (
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setToDelete(empresa)}
@@ -250,7 +250,7 @@ function EmpresasPage() {
               <Upload className="mr-1 h-4 w-4" aria-hidden="true" /> Importar
             </Button>
           )}
-        canManage ? (
+          {canManage ? (
           <Button
             onClick={abrirNova}
             className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
