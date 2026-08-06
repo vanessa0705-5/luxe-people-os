@@ -28,17 +28,20 @@ export const extrairRegistrosImportacao = createServerFn({ method: "POST" })
     if (!data.linhas && !data.arquivo) throw new Error("Nenhum conteúdo enviado para leitura.");
 
     const modulo = data.modulo as ModuloImportacao;
-    const gateway = createLovableAiGatewayProvider(apiKey);
+    // structuredOutputs garante o envio de json_schema estrito: sem isso o modelo
+    // responde JSON livre e a validação do schema falha.
+    const gateway = createLovableAiGatewayProvider(apiKey, undefined, {
+      structuredOutputs: true,
+    });
     const prompt = montarPromptImportacao(modulo, data.linhas);
 
     const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
     if (data.arquivo) {
       content.push({
         type: "file",
-        file: {
-          filename: data.arquivo.nome,
-          file_data: `data:${data.arquivo.mime};base64,${data.arquivo.base64}`,
-        },
+        mediaType: data.arquivo.mime || "application/pdf",
+        filename: data.arquivo.nome,
+        data: data.arquivo.base64,
       });
     }
 
