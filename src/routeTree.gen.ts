@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppNrsRouteImport } from './routes/_app/nrs'
 import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
 import { Route as AppFeriasRouteImport } from './routes/_app/ferias'
 import { Route as AppEmpresasRouteImport } from './routes/_app/empresas'
@@ -49,6 +50,11 @@ const AppTomadoresRoute = AppTomadoresRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNrsRoute = AppNrsRouteImport.update({
+  id: '/nrs',
+  path: '/nrs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/_app/empresas': typeof AppEmpresasRoute
   '/_app/ferias': typeof AppFeriasRoute
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
+  '/_app/nrs': typeof AppNrsRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tomadores': typeof AppTomadoresRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/ferias'
     | '/movimentacoes'
+    | '/nrs'
     | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/ferias'
     | '/movimentacoes'
+    | '/nrs'
     | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/empresas'
     | '/_app/ferias'
     | '/_app/movimentacoes'
+    | '/_app/nrs'
     | '/_app/relatorios'
     | '/_app/tomadores'
     | '/_app/colaboradores/$id'
@@ -267,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/nrs': {
+      id: '/_app/nrs'
+      path: '/nrs'
+      fullPath: '/nrs'
+      preLoaderRoute: typeof AppNrsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/movimentacoes': {
@@ -379,6 +398,7 @@ interface AppRouteChildren {
   AppEmpresasRoute: typeof AppEmpresasRoute
   AppFeriasRoute: typeof AppFeriasRoute
   AppMovimentacoesRoute: typeof AppMovimentacoesRoute
+  AppNrsRoute: typeof AppNrsRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTomadoresRoute: typeof AppTomadoresRoute
 }
@@ -395,6 +415,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEmpresasRoute: AppEmpresasRoute,
   AppFeriasRoute: AppFeriasRoute,
   AppMovimentacoesRoute: AppMovimentacoesRoute,
+  AppNrsRoute: AppNrsRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTomadoresRoute: AppTomadoresRoute,
 }
