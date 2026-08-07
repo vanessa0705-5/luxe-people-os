@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppNrsRouteImport } from './routes/_app/nrs'
 import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
 import { Route as AppFeriasRouteImport } from './routes/_app/ferias'
 import { Route as AppEmpresasRouteImport } from './routes/_app/empresas'
@@ -23,6 +24,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCoordenadoresRouteImport } from './routes/_app/coordenadores'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as AppAuditoriaRouteImport } from './routes/_app/auditoria'
+import { Route as AppAsoRouteImport } from './routes/_app/aso'
 import { Route as AppAdministracaoRouteImport } from './routes/_app/administracao'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores.$id'
 
@@ -48,6 +50,11 @@ const AppTomadoresRoute = AppTomadoresRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNrsRoute = AppNrsRouteImport.update({
+  id: '/nrs',
+  path: '/nrs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
@@ -95,6 +102,11 @@ const AppAuditoriaRoute = AppAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAsoRoute = AppAsoRouteImport.update({
+  id: '/aso',
+  path: '/aso',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdministracaoRoute = AppAdministracaoRouteImport.update({
   id: '/administracao',
   path: '/administracao',
@@ -110,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
@@ -119,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -127,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
@@ -136,6 +151,7 @@ export interface FileRoutesByTo {
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
+  '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -146,6 +162,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/_app/administracao': typeof AppAdministracaoRoute
+  '/_app/aso': typeof AppAsoRoute
   '/_app/auditoria': typeof AppAuditoriaRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/_app/coordenadores': typeof AppCoordenadoresRoute
@@ -155,6 +172,7 @@ export interface FileRoutesById {
   '/_app/empresas': typeof AppEmpresasRoute
   '/_app/ferias': typeof AppFeriasRoute
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
+  '/_app/nrs': typeof AppNrsRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tomadores': typeof AppTomadoresRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
@@ -165,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/administracao'
+    | '/aso'
     | '/auditoria'
     | '/colaboradores'
     | '/coordenadores'
@@ -174,6 +193,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/ferias'
     | '/movimentacoes'
+    | '/nrs'
     | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
@@ -182,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/administracao'
+    | '/aso'
     | '/auditoria'
     | '/colaboradores'
     | '/coordenadores'
@@ -191,6 +212,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/ferias'
     | '/movimentacoes'
+    | '/nrs'
     | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
@@ -200,6 +222,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/_app/administracao'
+    | '/_app/aso'
     | '/_app/auditoria'
     | '/_app/colaboradores'
     | '/_app/coordenadores'
@@ -209,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/empresas'
     | '/_app/ferias'
     | '/_app/movimentacoes'
+    | '/_app/nrs'
     | '/_app/relatorios'
     | '/_app/tomadores'
     | '/_app/colaboradores/$id'
@@ -255,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/nrs': {
+      id: '/_app/nrs'
+      path: '/nrs'
+      fullPath: '/nrs'
+      preLoaderRoute: typeof AppNrsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/movimentacoes': {
@@ -320,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditoriaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aso': {
+      id: '/_app/aso'
+      path: '/aso'
+      fullPath: '/aso'
+      preLoaderRoute: typeof AppAsoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/administracao': {
       id: '/_app/administracao'
       path: '/administracao'
@@ -350,6 +388,7 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppAdministracaoRoute: typeof AppAdministracaoRoute
+  AppAsoRoute: typeof AppAsoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
   AppCoordenadoresRoute: typeof AppCoordenadoresRoute
@@ -359,12 +398,14 @@ interface AppRouteChildren {
   AppEmpresasRoute: typeof AppEmpresasRoute
   AppFeriasRoute: typeof AppFeriasRoute
   AppMovimentacoesRoute: typeof AppMovimentacoesRoute
+  AppNrsRoute: typeof AppNrsRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTomadoresRoute: typeof AppTomadoresRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdministracaoRoute: AppAdministracaoRoute,
+  AppAsoRoute: AppAsoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
   AppCoordenadoresRoute: AppCoordenadoresRoute,
@@ -374,6 +415,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEmpresasRoute: AppEmpresasRoute,
   AppFeriasRoute: AppFeriasRoute,
   AppMovimentacoesRoute: AppMovimentacoesRoute,
+  AppNrsRoute: AppNrsRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTomadoresRoute: AppTomadoresRoute,
 }
@@ -388,13 +430,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

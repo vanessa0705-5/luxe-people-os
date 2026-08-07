@@ -14,6 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
+      aso_historico: {
+        Row: {
+          acao: string
+          alteracoes: Json
+          aso_id: string | null
+          colaborador_id: string | null
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          alteracoes?: Json
+          aso_id?: string | null
+          colaborador_id?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          alteracoes?: Json
+          aso_id?: string | null
+          colaborador_id?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      asos: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          cargo: string | null
+          clinica: string | null
+          colaborador_id: string
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          crm: string | null
+          data_exame: string
+          data_vencimento: string | null
+          empresa_id: string | null
+          id: string
+          matricula: string | null
+          medico_responsavel: string | null
+          observacoes: string | null
+          resultado: Database["public"]["Enums"]["resultado_aso"] | null
+          tipo_exame: Database["public"]["Enums"]["tipo_exame_aso"]
+          unidade: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          cargo?: string | null
+          clinica?: string | null
+          colaborador_id: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm?: string | null
+          data_exame: string
+          data_vencimento?: string | null
+          empresa_id?: string | null
+          id?: string
+          matricula?: string | null
+          medico_responsavel?: string | null
+          observacoes?: string | null
+          resultado?: Database["public"]["Enums"]["resultado_aso"] | null
+          tipo_exame: Database["public"]["Enums"]["tipo_exame_aso"]
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          cargo?: string | null
+          clinica?: string | null
+          colaborador_id?: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm?: string | null
+          data_exame?: string
+          data_vencimento?: string | null
+          empresa_id?: string | null
+          id?: string
+          matricula?: string | null
+          medico_responsavel?: string | null
+          observacoes?: string | null
+          resultado?: Database["public"]["Enums"]["resultado_aso"] | null
+          tipo_exame?: Database["public"]["Enums"]["tipo_exame_aso"]
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -112,6 +229,7 @@ export type Database = {
           data_nascimento: string | null
           departamento: string | null
           email: string | null
+          empresa_id: string | null
           estado_civil: Database["public"]["Enums"]["estado_civil"] | null
           funcao: string | null
           id: string
@@ -140,6 +258,7 @@ export type Database = {
           titulo_zona: string | null
           tomador_id: string | null
           uf: string | null
+          unidade: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -163,6 +282,7 @@ export type Database = {
           data_nascimento?: string | null
           departamento?: string | null
           email?: string | null
+          empresa_id?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
           funcao?: string | null
           id?: string
@@ -191,6 +311,7 @@ export type Database = {
           titulo_zona?: string | null
           tomador_id?: string | null
           uf?: string | null
+          unidade?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -214,6 +335,7 @@ export type Database = {
           data_nascimento?: string | null
           departamento?: string | null
           email?: string | null
+          empresa_id?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
           funcao?: string | null
           id?: string
@@ -242,6 +364,7 @@ export type Database = {
           titulo_zona?: string | null
           tomador_id?: string | null
           uf?: string | null
+          unidade?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -251,6 +374,13 @@ export type Database = {
             columns: ["coordenador_id"]
             isOneToOne: false
             referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "colaboradores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
@@ -522,6 +652,117 @@ export type Database = {
           },
         ]
       }
+      nr_treinamentos: {
+        Row: {
+          carga_horaria: number | null
+          cargo: string | null
+          certificado_nome: string | null
+          certificado_path: string | null
+          colaborador_id: string
+          created_at: string
+          created_by: string | null
+          data_realizacao: string
+          data_validade: string | null
+          empresa_id: string | null
+          id: string
+          instrutor: string | null
+          nome_treinamento: string
+          nr_codigo: string
+          observacoes: string | null
+          unidade: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          carga_horaria?: number | null
+          cargo?: string | null
+          certificado_nome?: string | null
+          certificado_path?: string | null
+          colaborador_id: string
+          created_at?: string
+          created_by?: string | null
+          data_realizacao: string
+          data_validade?: string | null
+          empresa_id?: string | null
+          id?: string
+          instrutor?: string | null
+          nome_treinamento: string
+          nr_codigo: string
+          observacoes?: string | null
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          carga_horaria?: number | null
+          cargo?: string | null
+          certificado_nome?: string | null
+          certificado_path?: string | null
+          colaborador_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_realizacao?: string
+          data_validade?: string | null
+          empresa_id?: string | null
+          id?: string
+          instrutor?: string | null
+          nome_treinamento?: string
+          nr_codigo?: string
+          observacoes?: string | null
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nr_treinamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nr_treinamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nrs_catalogo: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          is_active: boolean
+          nome: string
+          obrigatoria: boolean
+          updated_at: string
+          validade_meses: number
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nome: string
+          obrigatoria?: boolean
+          updated_at?: string
+          validade_meses?: number
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nome?: string
+          obrigatoria?: boolean
+          updated_at?: string
+          validade_meses?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -717,16 +958,26 @@ export type Database = {
         Returns: boolean
       }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
+      pode_gerenciar_dp: { Args: { _user_id: string }; Returns: boolean }
       pode_gerenciar_rh: { Args: { _user_id: string }; Returns: boolean }
+      pode_gerenciar_sst: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin_principal" | "rh" | "gestor" | "consulta"
+      app_role:
+        | "admin_principal"
+        | "rh"
+        | "gestor"
+        | "consulta"
+        | "departamento_pessoal"
+        | "seguranca_trabalho"
+        | "visualizador"
       estado_civil:
         | "solteiro"
         | "casado"
         | "divorciado"
         | "viuvo"
         | "uniao_estavel"
+      resultado_aso: "apto" | "inapto" | "apto_com_restricao"
       sexo: "masculino" | "feminino" | "outro"
       status_colaborador: "ativo" | "afastado" | "ferias" | "desligado"
       status_empresa: "ativa" | "inativa"
@@ -738,6 +989,12 @@ export type Database = {
         | "concluida"
         | "cancelada"
       tipo_contrato: "clt" | "pj" | "temporario" | "estagio" | "terceirizado"
+      tipo_exame_aso:
+        | "admissional"
+        | "periodico"
+        | "retorno_trabalho"
+        | "mudanca_risco"
+        | "demissional"
       tipo_movimentacao:
         | "promocao"
         | "alteracao_salarial"
@@ -873,7 +1130,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin_principal", "rh", "gestor", "consulta"],
+      app_role: [
+        "admin_principal",
+        "rh",
+        "gestor",
+        "consulta",
+        "departamento_pessoal",
+        "seguranca_trabalho",
+        "visualizador",
+      ],
       estado_civil: [
         "solteiro",
         "casado",
@@ -881,6 +1146,7 @@ export const Constants = {
         "viuvo",
         "uniao_estavel",
       ],
+      resultado_aso: ["apto", "inapto", "apto_com_restricao"],
       sexo: ["masculino", "feminino", "outro"],
       status_colaborador: ["ativo", "afastado", "ferias", "desligado"],
       status_empresa: ["ativa", "inativa"],
@@ -893,6 +1159,13 @@ export const Constants = {
         "cancelada",
       ],
       tipo_contrato: ["clt", "pj", "temporario", "estagio", "terceirizado"],
+      tipo_exame_aso: [
+        "admissional",
+        "periodico",
+        "retorno_trabalho",
+        "mudanca_risco",
+        "demissional",
+      ],
       tipo_movimentacao: [
         "promocao",
         "alteracao_salarial",

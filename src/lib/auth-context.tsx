@@ -2,7 +2,14 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin_principal" | "rh" | "gestor" | "consulta";
+export type AppRole =
+  | "admin_principal"
+  | "rh"
+  | "departamento_pessoal"
+  | "seguranca_trabalho"
+  | "gestor"
+  | "consulta"
+  | "visualizador";
 
 export interface Profile {
   id: string;
@@ -22,6 +29,12 @@ interface AuthContextValue {
   hasRole: (role: AppRole) => boolean;
   isAdminPrincipal: boolean;
   canDelete: boolean;
+  /** RH ou Admin Principal — gestão geral de pessoas. */
+  canManageRh: boolean;
+  /** Segurança do Trabalho, RH ou Admin Principal — ASO e NRs. */
+  canManageSst: boolean;
+  /** Departamento Pessoal, RH ou Admin Principal. */
+  canManageDp: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -81,6 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hasRole,
     isAdminPrincipal,
     canDelete: isAdminPrincipal,
+    canManageRh: isAdminPrincipal || hasRole("rh"),
+    canManageSst: isAdminPrincipal || hasRole("rh") || hasRole("seguranca_trabalho"),
+    canManageDp: isAdminPrincipal || hasRole("rh") || hasRole("departamento_pessoal"),
     signOut: async () => {
       await supabase.auth.signOut();
     },
@@ -98,6 +114,9 @@ export function useAuth() {
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin_principal: "Administrador Principal",
   rh: "RH",
+  departamento_pessoal: "Departamento Pessoal",
+  seguranca_trabalho: "Segurança do Trabalho",
   gestor: "Gestor",
   consulta: "Consulta",
+  visualizador: "Visualizador",
 };
