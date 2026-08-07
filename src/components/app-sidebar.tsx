@@ -6,6 +6,8 @@ import {
   Factory,
   UserCog,
   FolderOpen,
+  HeartPulse,
+  ShieldCheck,
   Palmtree,
   Repeat,
   UserMinus,
