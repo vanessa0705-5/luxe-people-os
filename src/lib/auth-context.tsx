@@ -29,6 +29,12 @@ interface AuthContextValue {
   hasRole: (role: AppRole) => boolean;
   isAdminPrincipal: boolean;
   canDelete: boolean;
+  /** RH ou Admin Principal — gestão geral de pessoas. */
+  canManageRh: boolean;
+  /** Segurança do Trabalho, RH ou Admin Principal — ASO e NRs. */
+  canManageSst: boolean;
+  /** Departamento Pessoal, RH ou Admin Principal. */
+  canManageDp: boolean;
   signOut: () => Promise<void>;
 }
 
