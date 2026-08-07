@@ -23,6 +23,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCoordenadoresRouteImport } from './routes/_app/coordenadores'
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as AppAuditoriaRouteImport } from './routes/_app/auditoria'
+import { Route as AppAsoRouteImport } from './routes/_app/aso'
 import { Route as AppAdministracaoRouteImport } from './routes/_app/administracao'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores.$id'
 
@@ -95,6 +96,11 @@ const AppAuditoriaRoute = AppAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAsoRoute = AppAsoRouteImport.update({
+  id: '/aso',
+  path: '/aso',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdministracaoRoute = AppAdministracaoRouteImport.update({
   id: '/administracao',
   path: '/administracao',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/coordenadores': typeof AppCoordenadoresRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/_app/administracao': typeof AppAdministracaoRoute
+  '/_app/aso': typeof AppAsoRoute
   '/_app/auditoria': typeof AppAuditoriaRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/_app/coordenadores': typeof AppCoordenadoresRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/administracao'
+    | '/aso'
     | '/auditoria'
     | '/colaboradores'
     | '/coordenadores'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/administracao'
+    | '/aso'
     | '/auditoria'
     | '/colaboradores'
     | '/coordenadores'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/_app/administracao'
+    | '/_app/aso'
     | '/_app/auditoria'
     | '/_app/colaboradores'
     | '/_app/coordenadores'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditoriaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aso': {
+      id: '/_app/aso'
+      path: '/aso'
+      fullPath: '/aso'
+      preLoaderRoute: typeof AppAsoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/administracao': {
       id: '/_app/administracao'
       path: '/administracao'
@@ -350,6 +369,7 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppAdministracaoRoute: typeof AppAdministracaoRoute
+  AppAsoRoute: typeof AppAsoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
   AppCoordenadoresRoute: typeof AppCoordenadoresRoute
@@ -365,6 +385,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdministracaoRoute: AppAdministracaoRoute,
+  AppAsoRoute: AppAsoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
   AppCoordenadoresRoute: AppCoordenadoresRoute,
@@ -388,13 +409,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
