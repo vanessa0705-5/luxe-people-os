@@ -105,6 +105,9 @@ export function useAuth() {
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin_principal: "Administrador Principal",
   rh: "RH",
+  departamento_pessoal: "Departamento Pessoal",
+  seguranca_trabalho: "Segurança do Trabalho",
   gestor: "Gestor",
   consulta: "Consulta",
+  visualizador: "Visualizador",
 };
