@@ -15,6 +15,8 @@ import {
   Settings,
   ScrollText,
   LogOut,
+  CircleDollarSign,
+  WalletCards,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +49,11 @@ const mainItems = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
+const financeItems = [
+  { title: "Dashboard Financeiro", url: "/financeiro", icon: CircleDollarSign },
+  { title: "Rateio de Folha", url: "/rateio-folha", icon: WalletCards },
+];
+
 const adminItems = [
   { title: "Administração", url: "/administracao", icon: Settings },
   { title: "Auditoria", url: "/auditoria", icon: ScrollText },
@@ -56,7 +63,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { profile, roles, signOut } = useAuth();
+  const { profile, roles, signOut, canManageDp } = useAuth();
 
   const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
 
@@ -101,6 +108,26 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {canManageDp && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Financeiro</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {financeItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Sistema</SidebarGroupLabel>}
