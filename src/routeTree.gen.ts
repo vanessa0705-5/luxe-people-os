@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRateioFolhaRouteImport } from './routes/_app/rateio-folha'
+import { Route as AppFinanceiroRouteImport } from './routes/_app/financeiro'
 import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppNrsRouteImport } from './routes/_app/nrs'
@@ -41,6 +43,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppRateioFolhaRoute = AppRateioFolhaRouteImport.update({
+  id: '/rateio-folha',
+  path: '/rateio-folha',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppTomadoresRoute = AppTomadoresRouteImport.update({
   id: '/tomadores',
@@ -134,6 +146,8 @@ export interface FileRoutesByFullPath {
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/financeiro': typeof AppFinanceiroRoute
+  '/rateio-folha': typeof AppRateioFolhaRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -174,6 +188,8 @@ export interface FileRoutesById {
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
   '/_app/nrs': typeof AppNrsRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/financeiro': typeof AppFinanceiroRoute
+  '/_app/rateio-folha': typeof AppRateioFolhaRoute
   '/_app/tomadores': typeof AppTomadoresRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -195,6 +211,8 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/nrs'
     | '/relatorios'
+    | '/financeiro'
+    | '/rateio-folha'
     | '/tomadores'
     | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -214,6 +232,8 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/nrs'
     | '/relatorios'
+    | '/financeiro'
+    | '/rateio-folha'
     | '/tomadores'
     | '/colaboradores/$id'
   id:
@@ -266,6 +286,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/financeiro': {
+      id: '/_app/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AppFinanceiroRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rateio-folha': {
+      id: '/_app/rateio-folha'
+      path: '/rateio-folha'
+      fullPath: '/rateio-folha'
+      preLoaderRoute: typeof AppRateioFolhaRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/tomadores': {
       id: '/_app/tomadores'
@@ -387,6 +421,8 @@ const AppColaboradoresRouteWithChildren =
   AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
 
 interface AppRouteChildren {
+  AppFinanceiroRoute: typeof AppFinanceiroRoute
+  AppRateioFolhaRoute: typeof AppRateioFolhaRoute
   AppAdministracaoRoute: typeof AppAdministracaoRoute
   AppAsoRoute: typeof AppAsoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
@@ -404,6 +440,8 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppFinanceiroRoute: AppFinanceiroRoute,
+  AppRateioFolhaRoute: AppRateioFolhaRoute,
   AppAdministracaoRoute: AppAdministracaoRoute,
   AppAsoRoute: AppAsoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
