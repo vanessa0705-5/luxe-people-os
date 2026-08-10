@@ -64,7 +64,7 @@ function ColaboradorDetalhePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { data: colaborador, isLoading } = useQuery({
+  const { data: colaborador, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["colaboradores", id],
     queryFn: () => getColaborador(id),
   });
@@ -84,6 +84,24 @@ function ColaboradorDetalhePage() {
     return (
       <PageShell title="Carregando..." icon={<User className="h-5 w-5 text-gold-foreground" />}>
         <div className="py-10 text-center text-sm text-muted-foreground">Carregando...</div>
+      </PageShell>
+    );
+  }
+
+  if (isError) {
+    return (
+      <PageShell title="Não foi possível abrir o cadastro" icon={<User className="h-5 w-5 text-gold-foreground" />}>
+        <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            {error instanceof Error ? error.message : "O cadastro do colaborador não pôde ser carregado."}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate({ to: "/colaboradores" })}>
+              Voltar para colaboradores
+            </Button>
+            <Button onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        </div>
       </PageShell>
     );
   }
