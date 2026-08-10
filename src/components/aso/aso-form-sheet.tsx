@@ -211,6 +211,29 @@ export function AsoFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          <div className="rounded-xl border border-dashed border-gold/45 bg-accent/25 p-4">
+            <Label htmlFor="aso-arquivo">Documento do ASO (PDF)</Label>
+            <Input
+              id="aso-arquivo"
+              type="file"
+              accept="application/pdf,image/*"
+              aria-invalid={!!errors.arquivo}
+              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+            />
+            {errors.arquivo ? (
+              <p className="text-xs text-destructive">{errors.arquivo}</p>
+            ) : arquivo ? (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gold">
+                <FileUp className="h-3.5 w-3.5" /> Arquivo selecionado: {arquivo.name}
+              </p>
+            ) : registro?.arquivo_nome && !arquivo ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <FileUp className="h-3.5 w-3.5" /> Anexo atual: {registro.arquivo_nome}
+              </p>
+            ) : null}
+          </div>
+
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="aso-colaborador">Colaborador *</Label>
             <Select
@@ -379,24 +402,6 @@ export function AsoFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }
                 onChange={(e) => setForm((f) => ({ ...f, unidade: e.target.value }))}
               />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="aso-arquivo">Documento do ASO (PDF)</Label>
-            <Input
-              id="aso-arquivo"
-              type="file"
-              accept="application/pdf,image/*"
-              aria-invalid={!!errors.arquivo}
-              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-            />
-            {errors.arquivo ? (
-              <p className="text-xs text-destructive">{errors.arquivo}</p>
-            ) : registro?.arquivo_nome && !arquivo ? (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <FileUp className="h-3.5 w-3.5" /> Anexo atual: {registro.arquivo_nome}
-              </p>
-            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
