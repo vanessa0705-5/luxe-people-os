@@ -390,9 +390,13 @@ function ColaboradoresPage() {
                             {initials(c.nome_completo)}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-foreground">
+                            <Link
+                              to="/colaboradores/$id"
+                              params={{ id: c.id }}
+                              className="block truncate font-medium text-foreground underline-offset-4 hover:text-gold hover:underline"
+                            >
                               {c.nome_completo}
-                            </p>
+                            </Link>
                             <p className="truncate text-xs text-muted-foreground">
                               {c.email ?? c.matricula ?? c.cpf}
                             </p>
@@ -462,7 +466,13 @@ function ColaboradoresPage() {
                 >
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate font-medium text-foreground">{c.nome_completo}</h3>
+                      <Link
+                        to="/colaboradores/$id"
+                        params={{ id: c.id }}
+                        className="block truncate font-medium text-foreground underline-offset-4 hover:text-gold hover:underline"
+                      >
+                        {c.nome_completo}
+                      </Link>
                       <p className="truncate text-xs text-muted-foreground">
                         {c.cargo ?? "Cargo não informado"}
                         {c.departamento ? ` · ${c.departamento}` : ""}
