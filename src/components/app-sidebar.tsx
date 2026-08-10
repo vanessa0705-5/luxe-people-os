@@ -15,7 +15,6 @@ import {
   Settings,
   ScrollText,
   LogOut,
-  CircleDollarSign,
   WalletCards,
 } from "lucide-react";
 import {
@@ -50,7 +49,6 @@ const mainItems = [
 ];
 
 const financeItems = [
-  { title: "Dashboard Financeiro", url: "/financeiro", icon: CircleDollarSign },
   { title: "Rateio de Folha", url: "/rateio-folha", icon: WalletCards },
 ];
 
@@ -177,3 +175,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
