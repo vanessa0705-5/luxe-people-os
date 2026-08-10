@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -97,9 +97,9 @@ function RateioFolhaPage() {
       const linhas = await importarFolha(file);
       setFolha(linhas);
       toast.success(linhas.length + " linhas da folha importadas.");
-    } catch {
+    } catch (error) {
       setFolha([]);
-      toast.error("Não foi possível ler a planilha da folha.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível ler a planilha da folha.");
     } finally {
       setLendoFolha(false);
     }
@@ -115,9 +115,9 @@ function RateioFolhaPage() {
       const linhas = await importarRateio(file);
       setRateios(linhas);
       toast.success(linhas.length + " linhas de rateio importadas.");
-    } catch {
+    } catch (error) {
       setRateios([]);
-      toast.error("Não foi possível ler a planilha de rateio.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível ler a planilha de rateio.");
     } finally {
       setLendoRateio(false);
     }
@@ -199,9 +199,6 @@ function RateioFolhaPage() {
       icon={<WalletCards className="h-5 w-5 text-gold-foreground" />}
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/financeiro">Dashboard Financeiro</Link>
-          </Button>
           <Button onClick={novoProcessamento}>
             <Upload className="mr-2 h-4 w-4" /> Novo Rateio
           </Button>
