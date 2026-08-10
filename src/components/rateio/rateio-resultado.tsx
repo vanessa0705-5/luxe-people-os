@@ -1,4 +1,4 @@
-import { Building2 } from "lucide-react";
+import { Building2, ReceiptText, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,15 +8,58 @@ interface Props {
   resultado: ResultadoRateio;
 }
 
-const secoes: Array<{ titulo: string; chave: keyof Pick<RateioTomador, "folha" | "fgtsConsignado" | "inss" | "irrf"> }> = [
-  { titulo: "Folha", chave: "folha" },
+type ChaveValor = keyof Pick<RateioTomador, "folha" | "fgtsConsignado" | "inss" | "irrf">;
+
+const encargos: Array<{ titulo: string; chave: ChaveValor }> = [
   { titulo: "FGTS + Consignado", chave: "fgtsConsignado" },
   { titulo: "INSS", chave: "inss" },
   { titulo: "IRRF", chave: "irrf" },
 ];
 
+function TabelaRateio({
+  titulo,
+  chave,
+  total,
+  detalhes,
+}: {
+  titulo: string;
+  chave: ChaveValor;
+  total: number;
+  detalhes: RateioTomador[];
+}) {
+  return (
+    <Card className="overflow-hidden border-border/60 shadow-elegant">
+      <div className="flex items-center justify-between border-b border-border bg-muted/35 px-5 py-4">
+        <h4 className="font-semibold">{titulo}</h4>
+        <span className="text-sm font-semibold text-gold">{formatarMoeda(total)}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-5 py-3 font-medium">Tomador</th>
+              <th className="px-3 py-3 text-center font-medium">Colaboradores</th>
+              <th className="px-5 py-3 text-right font-medium">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detalhes.map((item) => (
+              <tr key={item.tomador} className="border-b border-border/60 last:border-0">
+                <td className="px-5 py-3 font-medium">{item.tomador}</td>
+                <td className="px-3 py-3 text-center">{item.colaboradores}</td>
+                <td className="px-5 py-3 text-right">{formatarMoeda(item[chave])}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 export function RateioResultado({ resultado }: Props) {
   if (!resultado.cnpjs.length) return null;
+
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -43,7 +86,7 @@ export function RateioResultado({ resultado }: Props) {
         </TabsList>
 
         {resultado.cnpjs.map((cnpj) => (
-          <TabsContent key={cnpj.cnpj} value={cnpj.cnpj} className="space-y-5">
+          <TabsContent key={cnpj.cnpj} value={cnpj.cnpj} className="space-y-6">
             <Card className="border-gold/25 bg-accent/30 p-5 shadow-elegant">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -63,38 +106,44 @@ export function RateioResultado({ resultado }: Props) {
               </div>
             </Card>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              {secoes.map((secao) => (
-                <Card key={secao.chave} className="overflow-hidden border-border/60 shadow-elegant">
-                  <div className="flex items-center justify-between border-b border-border bg-muted/35 px-5 py-4">
-                    <h4 className="font-semibold">{secao.titulo}</h4>
-                    <span className="text-sm font-semibold text-gold">
-                      {formatarMoeda(cnpj[secao.chave])}
-                    </span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
-                          <th className="px-5 py-3 font-medium">Tomador</th>
-                          <th className="px-3 py-3 text-center font-medium">Colaboradores</th>
-                          <th className="px-5 py-3 text-right font-medium">Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cnpj.detalhes.map((item) => (
-                          <tr key={item.tomador} className="border-b border-border/60 last:border-0">
-                            <td className="px-5 py-3 font-medium">{item.tomador}</td>
-                            <td className="px-3 py-3 text-center">{item.colaboradores}</td>
-                            <td className="px-5 py-3 text-right">{formatarMoeda(item[secao.chave])}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ReceiptText className="h-5 w-5 text-gold" />
+                <div>
+                  <h3 className="font-semibold">Folha</h3>
+                  <p className="text-xs text-muted-foreground">Valores da folha distribuídos por tomador.</p>
+                </div>
+              </div>
+              <TabelaRateio
+                titulo="Rateio da Folha"
+                chave="folha"
+                total={cnpj.folha}
+                detalhes={cnpj.detalhes}
+              />
+            </section>
+
+            <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-gold" />
+                <div>
+                  <h3 className="font-semibold">Encargos</h3>
+                  <p className="text-xs text-muted-foreground">
+                    FGTS, consignado, INSS e IRRF separados da folha.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 xl:grid-cols-3">
+                {encargos.map((secao) => (
+                  <TabelaRateio
+                    key={secao.chave}
+                    titulo={secao.titulo}
+                    chave={secao.chave}
+                    total={cnpj[secao.chave]}
+                    detalhes={cnpj.detalhes}
+                  />
+                ))}
+              </div>
+            </section>
 
             <Card className="border-border/60 p-5 shadow-elegant">
               <h4 className="mb-4 font-semibold">Resumo final do CNPJ</h4>
