@@ -95,7 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdminPrincipal,
     canDelete: isAdminPrincipal,
     canManageRh: isAdminPrincipal || hasRole("rh"),
-    canManageSst: isAdminPrincipal || hasRole("rh") || hasRole("seguranca_trabalho"),
+    canManageSst:
+        isAdminPrincipal ||
+        hasRole("rh") ||
+        hasRole("departamento_pessoal") ||
+        hasRole("seguranca_trabalho"),
     canManageDp: isAdminPrincipal || hasRole("rh") || hasRole("departamento_pessoal"),
     signOut: async () => {
       await supabase.auth.signOut();
