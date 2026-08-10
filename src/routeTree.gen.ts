@@ -167,6 +167,8 @@ export interface FileRoutesByTo {
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nrs': typeof AppNrsRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/financeiro': typeof AppFinanceiroRoute
+  '/rateio-folha': typeof AppRateioFolhaRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -254,6 +256,8 @@ export interface FileRouteTypes {
     | '/_app/movimentacoes'
     | '/_app/nrs'
     | '/_app/relatorios'
+    | '/_app/financeiro'
+    | '/_app/rateio-folha'
     | '/_app/tomadores'
     | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
