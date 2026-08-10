@@ -217,6 +217,29 @@ export function NrFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }:
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          <div className="rounded-xl border border-dashed border-gold/45 bg-accent/25 p-4">
+            <Label htmlFor="nr-arquivo">Certificado (PDF)</Label>
+            <Input
+              id="nr-arquivo"
+              type="file"
+              accept="application/pdf,image/*"
+              aria-invalid={!!errors.arquivo}
+              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+            />
+            {errors.arquivo ? (
+              <p className="text-xs text-destructive">{errors.arquivo}</p>
+            ) : arquivo ? (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gold">
+                <FileUp className="h-3.5 w-3.5" /> Certificado selecionado: {arquivo.name}
+              </p>
+            ) : registro?.certificado_nome && !arquivo ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <FileUp className="h-3.5 w-3.5" /> Anexo atual: {registro.certificado_nome}
+              </p>
+            ) : null}
+          </div>
+
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="nr-colaborador">Colaborador *</Label>
             <Select
@@ -374,24 +397,6 @@ export function NrFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }:
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="nr-arquivo">Certificado (PDF)</Label>
-            <Input
-              id="nr-arquivo"
-              type="file"
-              accept="application/pdf,image/*"
-              aria-invalid={!!errors.arquivo}
-              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-            />
-            {errors.arquivo ? (
-              <p className="text-xs text-destructive">{errors.arquivo}</p>
-            ) : registro?.certificado_nome && !arquivo ? (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <FileUp className="h-3.5 w-3.5" /> Anexo atual: {registro.certificado_nome}
-              </p>
-            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
