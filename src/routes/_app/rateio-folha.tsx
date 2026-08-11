@@ -74,6 +74,56 @@ const OPCOES_RATEIO = [
 ];
 
 
+
+function resultadoDoRelatorioLiquidos(relatorio: RelatorioLiquidos): ResultadoRateio {
+  const grupos = new Map<string, ResultadoRateio["cnpjs"][number]>();
+
+  for (const item of relatorio.tomadores) {
+    const cnpj = item.cnpj || "CNPJ não informado";
+    const atual = grupos.get(cnpj) ?? {
+      cnpj,
+      colaboradores: 0,
+      tomadores: 0,
+      folha: 0,
+      fgtsConsignado: 0,
+      inss: 0,
+      irrf: 0,
+      totalGeral: 0,
+      detalhes: [],
+    };
+
+    atual.colaboradores += item.colaboradores;
+    atual.tomadores += 1;
+    atual.folha += item.total;
+    atual.totalGeral += item.total;
+    atual.detalhes.push({
+      tomador: item.tomador,
+      colaboradores: item.colaboradores,
+      folha: item.total,
+      fgtsConsignado: 0,
+      inss: 0,
+      irrf: 0,
+      totalGeral: item.total,
+    });
+    grupos.set(cnpj, atual);
+  }
+
+  const cnpjs = Array.from(grupos.values());
+  return {
+    cnpjs,
+    resumo: {
+      empresas: cnpjs.length,
+      tomadores: relatorio.tomadores.length,
+      colaboradores: relatorio.totalColaboradores,
+      folha: relatorio.totalGeral,
+      fgtsConsignado: 0,
+      inss: 0,
+      irrf: 0,
+      totalGeral: relatorio.totalGeral,
+    },
+  };
+}
+
 function RateioFolhaPage() {
   const queryClient = useQueryClient();
   const { isAdminPrincipal } = useAuth();
@@ -102,6 +152,10 @@ function RateioFolhaPage() {
     try {
       const dados = await importarRelatorioLiquidos(file);
       setRelatorio(dados);
+      setResultado(null);
+      setSalvoAtual(null);
+      const competenciaArquivo = dados.competencia?.match(/(\d{2})\D+(\d{4})/);
+      if (competenciaArquivo) setCompetencia(competenciaArquivo[2] + "-" + competenciaArquivo[1]);
       toast.success(dados.tomadores.length + " tomadores identificados no relatório.");
     } catch (error) {
       toast.error(
@@ -126,7 +180,8 @@ function RateioFolhaPage() {
     [historico, filtroCompetencia],
   );
 
-  const progresso = (folha.length ? 50 : 0) + (rateios.length ? 50 : 0);
+  const progresso =
+    modo === "folha" ? (relatorio ? 100 : 0) : (folha.length ? 50 : 0) + (rateios.length ? 50 : 0);
 
   async function selecionarFolha(file: File | null) {
     setArquivoFolha(file);
@@ -166,25 +221,38 @@ function RateioFolhaPage() {
 
   function processar() {
     if (!competencia) return toast.error("Selecione a competência.");
+
+    if (modo === "folha") {
+      if (!relatorio) return toast.error("Envie o arquivo de líquidos para processar a Folha.");
+      setInconsistencias([]);
+      setResultado(resultadoDoRelatorioLiquidos(relatorio));
+      setSalvoAtual(null);
+      toast.success("Arquivo de líquidos processado e rateado por CNPJ e tomador.");
+      return;
+    }
+
     if (!folha.length || !rateios.length)
-      return toast.error("Importe as planilhas da folha e do rateio.");
-    const processado = processarRateio(folha, rateios, modo);
+      return toast.error("Importe o arquivo de encargos e a planilha de rateio.");
+
+    const processado = processarRateio(folha, rateios, "encargos");
     setInconsistencias(processado.inconsistencias);
     setResultado(processado.resultado);
     setSalvoAtual(null);
     if (processado.inconsistencias.length)
       toast.error("O processamento foi bloqueado por inconsistências.");
-    else toast.success("Rateio processado e conferido com sucesso.");
+    else toast.success("Encargos processados e conferidos com sucesso.");
   }
 
   const salvarMutation = useMutation({
     mutationFn: () =>
       salvarRateio({
         competencia,
-        arquivoFolhaNome: arquivoFolha?.name ?? "reprocessamento",
-        arquivoRateioNome: arquivoRateio?.name ?? "reprocessamento",
-        folha,
-        rateios,
+        arquivoFolhaNome:
+          modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoFolha?.name ?? "reprocessamento",
+        arquivoRateioNome:
+          modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoRateio?.name ?? "reprocessamento",
+        folha: modo === "folha" ? [] : folha,
+        rateios: modo === "folha" ? [] : rateios,
         resultado: resultado!,
       }),
     onSuccess: (registro) => {
@@ -213,6 +281,8 @@ function RateioFolhaPage() {
     setModo("folha");
     setArquivoFolha(null);
     setArquivoRateio(null);
+    setArquivoLiquidos(null);
+    setRelatorio(null);
     setFolha([]);
     setRateios([]);
     setResultado(null);
@@ -223,9 +293,15 @@ function RateioFolhaPage() {
 
   function reprocessar(registro: RateioFolhaRegistro) {
     setCompetencia(registro.competencia.slice(0, 7));
-    setModo("folha");
+    setModo(
+      registro.total_fgts_consignado + registro.total_inss + registro.total_irrf > 0
+        ? "encargos"
+        : "folha",
+    );
     setArquivoFolha(null);
     setArquivoRateio(null);
+    setArquivoLiquidos(null);
+    setRelatorio(null);
     setFolha(registro.folha_origem ?? []);
     setRateios(registro.rateio_origem ?? []);
     setResultado(null);
@@ -251,7 +327,6 @@ function RateioFolhaPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="novo">Novo Rateio</TabsTrigger>
-          <TabsTrigger value="liquidos">Relatório de Líquidos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
@@ -297,7 +372,11 @@ function RateioFolhaPage() {
 
             <Progress value={progresso} className="mb-6 h-2" />
 
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div
+              className={
+                "grid gap-5 " + (modo === "folha" ? "lg:grid-cols-2" : "lg:grid-cols-3")
+              }
+            >
               <div className="space-y-2">
                 <Label htmlFor="competencia">Competência *</Label>
                 <Input
@@ -306,38 +385,59 @@ function RateioFolhaPage() {
                   value={competencia}
                   onChange={(event) => setCompetencia(event.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Selecione o mês e o ano.</p>
+                <p className="text-xs text-muted-foreground">
+                  A competência também será identificada no arquivo quando estiver disponível.
+                </p>
               </div>
 
-              <UploadCard
-                id="arquivo-folha"
-                titulo="Upload da Folha"
-                descricao="Matrícula, Nome, CNPJ, Folha, FGTS, Consignado, INSS e IRRF"
-                arquivo={arquivoFolha}
-                linhas={folha.length}
-                carregando={lendoFolha}
-                onChange={selecionarFolha}
-              />
-
-              <UploadCard
-                id="arquivo-rateio"
-                titulo="Upload do Rateio"
-                descricao="Matrícula, Tomador e Percentual"
-                arquivo={arquivoRateio}
-                linhas={rateios.length}
-                carregando={lendoRateio}
-                onChange={selecionarRateio}
-              />
+              {modo === "folha" ? (
+                <UploadCard
+                  id="arquivo-liquidos"
+                  titulo="Arquivo de Líquidos"
+                  descricao="Relatório de Líquidos por serviço (.xls, .xlsx ou .csv)"
+                  arquivo={arquivoLiquidos}
+                  linhas={relatorio?.totalColaboradores ?? 0}
+                  carregando={lendoLiquidos}
+                  accept=".xls,.xlsx,.csv"
+                  onChange={selecionarLiquidos}
+                />
+              ) : (
+                <>
+                  <UploadCard
+                    id="arquivo-encargos"
+                    titulo="Arquivo de Encargos"
+                    descricao="Matrícula, Nome, CNPJ, FGTS, Consignado, INSS e IRRF"
+                    arquivo={arquivoFolha}
+                    linhas={folha.length}
+                    carregando={lendoFolha}
+                    onChange={selecionarFolha}
+                  />
+                  <UploadCard
+                    id="arquivo-rateio"
+                    titulo="Upload do Rateio"
+                    descricao="Matrícula, Tomador e Percentual"
+                    arquivo={arquivoRateio}
+                    linhas={rateios.length}
+                    carregando={lendoRateio}
+                    onChange={selecionarRateio}
+                  />
+                </>
+              )}
             </div>
 
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <Button
                 size="lg"
                 onClick={processar}
-                disabled={lendoFolha || lendoRateio || !folha.length || !rateios.length}
+                disabled={
+                  modo === "folha"
+                    ? lendoLiquidos || !relatorio
+                    : lendoFolha || lendoRateio || !folha.length || !rateios.length
+                }
                 className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
               >
-                <Play className="mr-2 h-4 w-4" /> Processar Rateio
+                <Play className="mr-2 h-4 w-4" />
+                {modo === "folha" ? "Processar Folha" : "Processar Encargos"}
               </Button>
             </div>
           </Card>
@@ -399,94 +499,6 @@ function RateioFolhaPage() {
             </>
           )}
         </TabsContent>
-
-        <TabsContent value="liquidos" className="mt-5 space-y-5">
-          <Card className="border-border/60 p-5 shadow-elegant">
-            <h2 className="font-semibold">Relatório de Líquidos por serviço</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Importe o relatório da folha e veja apenas os totais por tomador e a quantidade de
-              colaboradores em cada um.
-            </p>
-            <div className="space-y-2">
-              <Label htmlFor="arquivo-liquidos">Arquivo (.xls, .xlsx ou .csv)</Label>
-              <Input
-                id="arquivo-liquidos"
-                type="file"
-                accept=".xls,.xlsx,.csv"
-                onChange={(e) => selecionarLiquidos(e.target.files?.[0] ?? null)}
-              />
-              {lendoLiquidos && <p className="text-xs text-muted-foreground">Lendo arquivo...</p>}
-              {arquivoLiquidos && !lendoLiquidos && !relatorio && (
-                <p className="text-xs text-destructive">Nenhum tomador identificado neste arquivo.</p>
-              )}
-            </div>
-          </Card>
-
-          {relatorio && (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  ["Competência", relatorio.competencia || "—"],
-                  ["Tomadores", relatorio.tomadores.length],
-                  ["Colaboradores", relatorio.totalColaboradores],
-                  ["Total líquido", formatarMoeda(relatorio.totalGeral)],
-                ].map(([label, value]) => (
-                  <Card key={String(label)} className="border-border/60 p-4 shadow-elegant">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-                    <p className="mt-2 text-xl font-semibold">{value}</p>
-                  </Card>
-                ))}
-              </div>
-
-              <Card className="overflow-hidden border-border/60 shadow-elegant">
-                <div className="border-b border-border bg-muted/35 px-5 py-4">
-                  <h3 className="font-semibold">Totais por tomador</h3>
-                  {relatorio.empresa && (
-                    <p className="text-xs text-muted-foreground">{relatorio.empresa}</p>
-                  )}
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
-                        <th className="px-5 py-3 font-medium">Tomador</th>
-                        <th className="px-3 py-3 font-medium">CNPJ</th>
-                        <th className="px-3 py-3 text-center font-medium">Colaboradores</th>
-                        <th className="px-5 py-3 text-right font-medium">Total líquido</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {relatorio.tomadores.map((item) => (
-                        <tr
-                          key={item.cnpj + item.tomador}
-                          className="border-b border-border/60 last:border-0"
-                        >
-                          <td className="px-5 py-3 font-medium">{item.tomador}</td>
-                          <td className="px-3 py-3 text-muted-foreground">{item.cnpj}</td>
-                          <td className="px-3 py-3 text-center">{item.colaboradores}</td>
-                          <td className="px-5 py-3 text-right">{formatarMoeda(item.total)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-muted/30 font-semibold">
-                        <td className="px-5 py-3" colSpan={2}>
-                          Total
-                        </td>
-                        <td className="px-3 py-3 text-center">{relatorio.totalColaboradores}</td>
-                        <td className="px-5 py-3 text-right text-gold">
-                          {formatarMoeda(relatorio.totalGeral)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </Card>
-            </>
-          )}
-        </TabsContent>
-
-
 
         <TabsContent value="historico" className="mt-5">
           <Card className="border-border/60 shadow-elegant">
@@ -555,6 +567,7 @@ function UploadCard(props: {
   arquivo: File | null;
   linhas: number;
   carregando: boolean;
+  accept?: string;
   onChange: (file: File | null) => void;
 }) {
   return (
@@ -570,7 +583,7 @@ function UploadCard(props: {
           <FileSpreadsheet className="mb-2 h-6 w-6 text-gold" />
         )}
         <span className="text-sm font-medium">
-          {props.arquivo ? props.arquivo.name : "Selecionar arquivo Excel"}
+          {props.arquivo ? props.arquivo.name : "Selecionar arquivo"}
         </span>
         <span className="mt-1 text-xs text-muted-foreground">
           {props.linhas ? props.linhas + " linhas importadas" : props.descricao}
@@ -579,7 +592,7 @@ function UploadCard(props: {
       <Input
         id={props.id}
         type="file"
-        accept=".xlsx,.xls"
+        accept={props.accept ?? ".xlsx,.xls"}
         className="sr-only"
         onChange={(event) => props.onChange(event.target.files?.[0] ?? null)}
       />
