@@ -155,7 +155,7 @@ function RateioFolhaPage() {
     if (!competencia) return toast.error("Selecione a competência.");
     if (!folha.length || !rateios.length)
       return toast.error("Importe as planilhas da folha e do rateio.");
-    const processado = processarRateio(folha, rateios);
+    const processado = processarRateio(folha, rateios, modo);
     setInconsistencias(processado.inconsistencias);
     setResultado(processado.resultado);
     setSalvoAtual(null);
