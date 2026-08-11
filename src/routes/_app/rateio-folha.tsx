@@ -76,6 +76,29 @@ function RateioFolhaPage() {
   const [lendoFolha, setLendoFolha] = useState(false);
   const [lendoRateio, setLendoRateio] = useState(false);
   const [filtroCompetencia, setFiltroCompetencia] = useState("");
+  const [modo, setModo] = useState<ModoRateio>("completo");
+  const [arquivoLiquidos, setArquivoLiquidos] = useState<File | null>(null);
+  const [relatorio, setRelatorio] = useState<RelatorioLiquidos | null>(null);
+  const [lendoLiquidos, setLendoLiquidos] = useState(false);
+
+  async function selecionarLiquidos(file: File | null) {
+    setArquivoLiquidos(file);
+    setRelatorio(null);
+    if (!file) return;
+    setLendoLiquidos(true);
+    try {
+      const dados = await importarRelatorioLiquidos(file);
+      setRelatorio(dados);
+      toast.success(dados.tomadores.length + " tomadores identificados no relatório.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível ler o relatório de líquidos.",
+      );
+    } finally {
+      setLendoLiquidos(false);
+    }
+  }
+
 
   const { data: historico = [], isLoading: carregandoHistorico } = useQuery({
     queryKey: ["rateios-folha"],
