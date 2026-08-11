@@ -217,7 +217,7 @@ async function combinarTextos(files: File[]): Promise<string> {
 }
 
 function ocorrenciasPorCpf(texto: string): Array<{ cpf: string; trecho: string }> {
-  const regex = /\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g;
+  const regex = /(?:\d{3}\s*\.\s*\d{3}\s*\.\s*\d{3}\s*-\s*\d{2}|(?<!\d)\d{11}(?!\d))/g;
   const encontrados = Array.from(texto.matchAll(regex));
   return encontrados.map((item, indice) => ({
     cpf: digitos(item[0]),
@@ -246,15 +246,35 @@ function lerFgtsPorCpf(texto: string): Map<string, number> {
 
 function lerConsignadoPorCpf(texto: string): Map<string, number> {
   const valores = new Map<string, number>();
-  for (const item of ocorrenciasPorCpf(texto)) {
-    const moedas = Array.from(item.trecho.matchAll(/[\d.]+,\d{2}/g));
+  const regexCpf = /(?:\d{3}\s*\.\s*\d{3}\s*\.\s*\d{3}\s*-\s*\d{2}|(?<!\d)\d{11}(?!\d))/g;
+  const regexMoeda = /(?<![\d.])(?:R\$\s*)?(?:\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d+\.\d{2})(?=\s|$|\d{2}\/)/g;
+
+  for (const linha of texto.split(/\n+/)) {
+    const cpfs = Array.from(linha.matchAll(regexCpf));
+    if (!cpfs.length) continue;
+    const moedas = Array.from(linha.matchAll(regexMoeda));
     if (!moedas.length) continue;
-    const valor = numeroBr(moedas[0][0]);
-    valores.set(item.cpf, round2((valores.get(item.cpf) ?? 0) + valor));
+    const valor = numeroBr(moedas[moedas.length - 1][0]);
+    if (!valor) continue;
+    for (const cpfEncontrado of cpfs) {
+      const cpf = digitos(cpfEncontrado[0]);
+      valores.set(cpf, round2((valores.get(cpf) ?? 0) + valor));
+    }
   }
+
+  if (!valores.size) {
+    for (const item of ocorrenciasPorCpf(texto)) {
+      const moedas = Array.from(item.trecho.matchAll(regexMoeda));
+      if (!moedas.length) continue;
+      const valor = numeroBr(moedas[0][0]);
+      if (!valor) continue;
+      valores.set(item.cpf, round2((valores.get(item.cpf) ?? 0) + valor));
+    }
+  }
+
   if (!valores.size)
     throw new Error(
-      "Relatório do FGTS Consignado: não foram encontrados CPF e valor das parcelas.",
+      "Relatório do FGTS Consignado: não foram encontrados CPF e valor das parcelas. Verifique se o arquivo possui texto pesquisável ou células com CPF e Valor Consignado.",
     );
   return valores;
 }
@@ -677,4 +697,3 @@ export async function exportarExcelEncargos(
     "rateio-encargos-" + registro.competencia.slice(0, 7) + ".xlsx",
   );
 }
-
