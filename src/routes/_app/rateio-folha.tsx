@@ -27,6 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import {
+  MODOS_RATEIO,
   excluirRateio,
   exportarExcel,
   exportarPdf,
@@ -34,15 +35,19 @@ import {
   formatarMoeda,
   importarFolha,
   importarRateio,
+  importarRelatorioLiquidos,
   listarRateios,
   processarRateio,
   salvarRateio,
   type FolhaLinha,
   type InconsistenciaRateio,
+  type ModoRateio,
   type RateioFolhaRegistro,
   type RateioLinha,
+  type RelatorioLiquidos,
   type ResultadoRateio,
 } from "@/lib/rateio-folha-api";
+
 
 export const Route = createFileRoute("/_app/rateio-folha")({
   head: () => ({
