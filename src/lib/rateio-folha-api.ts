@@ -241,19 +241,18 @@ export async function importarFolha(file: File): Promise<FolhaLinha[]> {
 }
 
 export async function importarRateio(file: File): Promise<RateioLinha[]> {
-  const XLSX = await carregarXlsx();
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+  const matrizes = await matrizesDoArquivo(file);
   const aliases = {
     matricula: ["Matrícula", "Matricula", "Registro", "Chapa", "Código", "Codigo"],
     tomador: ["Tomador", "Cliente", "Centro de custo", "Centro de Custo"],
     percentual: ["Percentual", "%", "Percentual Rateio", "Percentual de Rateio"],
   };
   const rows = extrairLinhas(
-    XLSX,
-    workbook,
+    matrizes,
     [aliases.matricula, aliases.tomador, aliases.percentual],
     "rateio",
   );
+
   const result = rows
     .map((row) => ({
       matricula: matricula(campo(row, aliases.matricula)),
