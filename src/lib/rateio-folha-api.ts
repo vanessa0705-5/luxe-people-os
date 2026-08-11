@@ -39,6 +39,8 @@ export interface RelatorioLiquidos {
   competencia: string;
   tomadores: RelatorioLiquidosTomador[];
   totalColaboradores: number;
+  totalRateado: number;
+  totalProlabore: number;
   totalGeral: number;
 }
 
@@ -82,6 +84,8 @@ export interface ResultadoRateio {
     inss: number;
     irrf: number;
     totalGeral: number;
+    prolabore?: number;
+    totalArquivo?: number;
   };
 }
 
@@ -554,7 +558,7 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
         competencia = Number.isFinite(numerico) && numerico > 20000 ? dataDeSerial(numerico) : valor;
       }
 
-      const servico = texto.match(/Servi[çc]o:\s*\d*\s*-?\s*(.+?)\s*-\s*CNPJ:\s*([\d./-]+)/i);
+      const servico = texto.match(/Servi[çc]o:s*d*s*-?s*(.+?)s*-s*CNPJ:s*([d./-]+)/i);
       if (servico) {
         atual = { tomador: servico[1].trim(), cnpj: onlyDigits(servico[2]) };
         const chave = atual.cnpj + "|" + normalize(atual.tomador);
@@ -567,9 +571,9 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
         continue;
       if (!atual) continue;
 
-      const cpf = cells.find((cell) => /^\d{11}$/.test(onlyDigits(cell)) && onlyDigits(cell).length === 11);
+      const cpf = cells.find((cell) => /^d{11}$/.test(onlyDigits(cell)) && onlyDigits(cell).length === 11);
       if (!cpf) continue;
-      const valores = cells.filter((cell) => cell && cell !== cpf && /[\d]/.test(cell));
+      const valores = cells.filter((cell) => cell && cell !== cpf && /[d]/.test(cell));
       const valor = numero(valores[valores.length - 1]);
       if (!valor) continue;
 
@@ -581,20 +585,28 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
     }
   }
 
-  const tomadores = Array.from(acumulado.values())
+  const grupos = Array.from(acumulado.values())
     .map((item) => ({
       tomador: item.tomador,
       cnpj: item.cnpj,
       colaboradores: item.chaves.size,
       total: item.total,
     }))
-    .filter((item) => item.colaboradores > 0)
+    .filter((item) => item.colaboradores > 0);
+
+  const ehProlabore = (nome: string) => /pros*labore/.test(normalize(nome));
+  const prolabore = grupos.filter((item) => ehProlabore(item.tomador));
+  const tomadores = grupos
+    .filter((item) => !ehProlabore(item.tomador))
     .sort((a, b) => b.total - a.total);
 
   if (!tomadores.length)
     throw new Error(
-      "Não foi possível identificar os serviços/tomadores no relatório de líquidos. Confirme se o arquivo é o relatório da folha por serviço.",
+      "Não foi possível identificar os serviços/tomadores para rateio. Confirme se o arquivo é o relatório da folha por serviço.",
     );
+
+  const totalRateado = round2(tomadores.reduce((acc, item) => acc + item.total, 0));
+  const totalProlabore = round2(prolabore.reduce((acc, item) => acc + item.total, 0));
 
   return {
     empresa,
@@ -602,7 +614,9 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
     competencia,
     tomadores,
     totalColaboradores: tomadores.reduce((acc, item) => acc + item.colaboradores, 0),
-    totalGeral: round2(tomadores.reduce((acc, item) => acc + item.total, 0)),
+    totalRateado,
+    totalProlabore,
+    totalGeral: round2(totalRateado + totalProlabore),
   };
 }
 
@@ -694,14 +708,23 @@ export async function exportarExcel(registro: RateioFolhaRegistro): Promise<void
 
   const dados = Array.from(consolidado.values())
     .sort((a, b) => a.tomador.localeCompare(b.tomador, "pt-BR"))
-    .map((item) => ({
-      Tomador: item.tomador,
-      "Quantidade de colaboradores": item.colaboradores,
-      Valor: item.valor,
-    }));
+    .map((item) => [item.tomador, item.colaboradores, item.valor]);
 
-  const planilha = XLSX.utils.json_to_sheet(dados);
-  planilha["!cols"] = [{ wch: 42 }, { wch: 28 }, { wch: 18 }];
+  const totalRateado = round2(dados.reduce((acc, item) => acc + Number(item[2] ?? 0), 0));
+  const prolabore = registro.resultado.resumo.prolabore ?? 0;
+  const totalCompleto =
+    registro.resultado.resumo.totalArquivo ?? round2(totalRateado + prolabore);
+  const linhas = [
+    ["Tomador", "Quantidade de colaboradores", "Valor"],
+    ...dados,
+    [],
+    ["TOTAL RATEADO", registro.quantidade_colaboradores, totalRateado],
+    ["PRÓ-LABORE (FORA DO RATEIO)", "", prolabore],
+    ["TOTAL COMPLETO DA FOLHA", "", totalCompleto],
+  ];
+
+  const planilha = XLSX.utils.aoa_to_sheet(linhas);
+  planilha["!cols"] = [{ wch: 42 }, { wch: 28 }, { wch: 20 }];
   XLSX.utils.book_append_sheet(workbook, planilha, "Rateio por Tomador");
   XLSX.writeFile(workbook, "rateio-por-tomador-" + registro.competencia.slice(0, 7) + ".xlsx");
 }
