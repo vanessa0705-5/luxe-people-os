@@ -210,8 +210,7 @@ function extrairLinhas(
 
 
 export async function importarFolha(file: File): Promise<FolhaLinha[]> {
-  const XLSX = await carregarXlsx();
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+  const matrizes = await matrizesDoArquivo(file);
   const aliases = {
     matricula: ["Matrícula", "Matricula", "Registro", "Chapa", "Código", "Codigo"],
     nome: ["Nome", "Colaborador", "Nome do colaborador", "Funcionário", "Funcionario"],
@@ -222,12 +221,8 @@ export async function importarFolha(file: File): Promise<FolhaLinha[]> {
     inss: ["INSS", "Valor INSS"],
     irrf: ["IRRF", "Valor IRRF"],
   };
-  const rows = extrairLinhas(
-    XLSX,
-    workbook,
-    [aliases.matricula, aliases.cnpj, aliases.folha],
-    "folha",
-  );
+  const rows = extrairLinhas(matrizes, [aliases.matricula, aliases.cnpj, aliases.folha], "folha");
+
   const result = rows
     .map((row) => ({
       matricula: matricula(campo(row, aliases.matricula)),
