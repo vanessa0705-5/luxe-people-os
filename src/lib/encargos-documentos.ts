@@ -7,11 +7,11 @@ import type {
 import { matrizesDoArquivo } from "@/lib/rateio-folha-api";
 
 export interface ArquivosEncargos {
-  liquidos: File;
-  fgtsMensal: File;
-  consignado: File;
-  guiaFgts: File;
-  darf: File;
+  liquidos: File[];
+  fgtsMensal: File[];
+  consignado: File[];
+  guiaFgts: File[];
+  darf: File[];
 }
 
 export interface ConferenciaEncargos {
@@ -70,56 +70,75 @@ function nomeSemCodigo(valor: string): string {
   return valor.replace(/^\s*\d+\s*-\s*/, "").trim();
 }
 
-async function lerColaboradoresLiquidos(file: File): Promise<ColaboradorLiquidos[]> {
-  const matrizes = await matrizesDoArquivo(file);
+async function lerColaboradoresLiquidos(files: File[]): Promise<ColaboradorLiquidos[]> {
   const colaboradores = new Map<string, ColaboradorLiquidos>();
 
-  for (const matriz of matrizes) {
-    let departamento = "";
-    let cnpj = "";
-
-    for (const linhaBruta of matriz) {
-      const cells = (linhaBruta ?? []).map((cell) => String(cell ?? "").trim());
-      const preenchidas = cells.filter(Boolean);
-      const texto = preenchidas.join(" ");
-      if (!texto) continue;
-
-      if (/^Servi[çc]o:/i.test(texto)) {
-        const achouCnpj = texto.match(/CNPJ:\s*([\d./-]+)/i);
-        cnpj = achouCnpj ? digitos(achouCnpj[1]) : "";
-        const semRotulo = texto.replace(/^Servi[çc]o:\s*/i, "");
-        const semCnpj = semRotulo.replace(/\s*-\s*CNPJ:.*$/i, "");
-        departamento = nomeSemCodigo(semCnpj);
-        continue;
+  for (const file of files) {
+    if (file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf") {
+      const texto = await extrairTextoPdf(file);
+      const blocos = texto.split(/(?=Servi[çc]o:|Departamento:)/i);
+      for (const bloco of blocos) {
+        const cabecalho = bloco.match(/^(?:Servi[çc]o|Departamento):\s*(.*?)(?=\s+-?\s*CNPJ:|\n|$)/i);
+        if (!cabecalho) continue;
+        const departamento = nomeSemCodigo(cabecalho[1]);
+        const cnpj = digitos(bloco.match(/CNPJ:\s*([\d./-]+)/i)?.[1] ?? "");
+        const cpfs = Array.from(bloco.matchAll(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g));
+        for (let indice = 0; indice < cpfs.length; indice += 1) {
+          const cpf = digitos(cpfs[indice][0]);
+          const inicio = (cpfs[indice].index ?? 0) + cpfs[indice][0].length;
+          const fim = cpfs[indice + 1]?.index ?? bloco.length;
+          const trecho = bloco.slice(inicio, fim);
+          const moedas = Array.from(trecho.matchAll(/[\d.]+,\d{2}/g));
+          const liquido = moedas.length ? numeroBr(moedas[moedas.length - 1][0]) : 0;
+          if (liquido && !colaboradores.has(cpf)) {
+            colaboradores.set(cpf, { cpf, nome: "", departamento, cnpj, liquido });
+          }
+        }
       }
+      continue;
+    }
 
-      if (/^Departamento:/i.test(texto)) {
-        const semRotulo = texto.replace(/^Departamento:\s*/i, "");
-        const achouCnpj = semRotulo.match(/CNPJ:\s*([\d./-]+)/i);
-        if (achouCnpj) cnpj = digitos(achouCnpj[1]);
-        departamento = nomeSemCodigo(semRotulo.replace(/\s*-\s*CNPJ:.*$/i, ""));
-        continue;
-      }
+    const matrizes = await matrizesDoArquivo(file);
+    for (const matriz of matrizes) {
+      let departamento = "";
+      let cnpj = "";
 
-      if (!departamento) continue;
-      const indiceCpf = cells.findIndex((cell) => digitos(cell).length === 11);
-      if (indiceCpf < 0) continue;
+      for (const linhaBruta of matriz) {
+        const cells = (linhaBruta ?? []).map((cell) => String(cell ?? "").trim());
+        const preenchidas = cells.filter(Boolean);
+        const texto = preenchidas.join(" ");
+        if (!texto) continue;
 
-      const cpf = digitos(cells[indiceCpf]);
-      const candidatosNome = cells
-        .slice(0, indiceCpf)
-        .filter((cell) => /[A-Za-zÀ-ÿ]/.test(cell) && !/^(c[oó]digo|nome|cpf)$/i.test(cell));
-      const nome = candidatosNome[candidatosNome.length - 1] ?? "";
-      const valores = cells
-        .slice(indiceCpf + 1)
-        .map(numeroBr)
-        .filter((valor) => valor !== 0);
-      const liquido = valores[valores.length - 1] ?? 0;
-      if (!liquido) continue;
+        if (/^Servi[çc]o:/i.test(texto)) {
+          const achouCnpj = texto.match(/CNPJ:\s*([\d./-]+)/i);
+          cnpj = achouCnpj ? digitos(achouCnpj[1]) : "";
+          const semRotulo = texto.replace(/^Servi[çc]o:\s*/i, "");
+          departamento = nomeSemCodigo(semRotulo.replace(/\s*-\s*CNPJ:.*$/i, ""));
+          continue;
+        }
 
-      const atual = colaboradores.get(cpf);
-      if (!atual) {
-        colaboradores.set(cpf, { cpf, nome, departamento, cnpj, liquido });
+        if (/^Departamento:/i.test(texto)) {
+          const semRotulo = texto.replace(/^Departamento:\s*/i, "");
+          const achouCnpj = semRotulo.match(/CNPJ:\s*([\d./-]+)/i);
+          if (achouCnpj) cnpj = digitos(achouCnpj[1]);
+          departamento = nomeSemCodigo(semRotulo.replace(/\s*-\s*CNPJ:.*$/i, ""));
+          continue;
+        }
+
+        if (!departamento) continue;
+        const indiceCpf = cells.findIndex((cell) => digitos(cell).length === 11);
+        if (indiceCpf < 0) continue;
+
+        const cpf = digitos(cells[indiceCpf]);
+        const candidatosNome = cells
+          .slice(0, indiceCpf)
+          .filter((cell) => /[A-Za-zÀ-ÿ]/.test(cell) && !/^(c[oó]digo|nome|cpf)$/i.test(cell));
+        const nome = candidatosNome[candidatosNome.length - 1] ?? "";
+        const valores = cells.slice(indiceCpf + 1).map(numeroBr).filter((valor) => valor !== 0);
+        const liquido = valores[valores.length - 1] ?? 0;
+        if (liquido && !colaboradores.has(cpf)) {
+          colaboradores.set(cpf, { cpf, nome, departamento, cnpj, liquido });
+        }
       }
     }
   }
@@ -129,7 +148,7 @@ async function lerColaboradoresLiquidos(file: File): Promise<ColaboradorLiquidos
   );
   if (!lista.length) {
     throw new Error(
-      "Relatório de Líquidos: não foi possível identificar CPF, Departamento/Tomador e valor líquido.",
+      "Relatório de Líquidos: não foi possível identificar CPF, Departamento/Tomador e valor líquido nos arquivos Excel ou PDF.",
     );
   }
   return lista;
@@ -151,11 +170,17 @@ async function extrairTextoPdf(file: File): Promise<string> {
       const conteudo = await (await documento.getPage(pagina)).getTextContent();
       paginas.push(
         conteudo.items
-          .map((item: { str?: string }) => item.str ?? "")
-          .join(" "),
+          .map((item: { str?: string; hasEOL?: boolean }) =>
+            (item.str ?? "") + (item.hasEOL ? "\n" : " "),
+          )
+          .join(""),
       );
     }
-    const texto = paginas.join("\n").replace(/\s+/g, " ").trim();
+    const texto = paginas
+      .join("\n")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s+/g, "\n")
+      .trim();
     if (!texto) throw new Error("PDF sem texto pesquisável.");
     return texto;
   } catch (error) {
@@ -165,6 +190,30 @@ async function extrairTextoPdf(file: File): Promise<string> {
         (error instanceof Error ? error.message : "Arquivo inválido."),
     );
   }
+}
+
+async function extrairTextoArquivo(file: File): Promise<string> {
+  if (file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf") {
+    return extrairTextoPdf(file);
+  }
+  try {
+    const matrizes = await matrizesDoArquivo(file);
+    const texto = matrizes
+      .flatMap((matriz) => matriz.map((linha) => (linha ?? []).map((celula) => String(celula ?? "")).join(" ")))
+      .join("\n")
+      .trim();
+    if (!texto) throw new Error("Planilha sem conteúdo legível.");
+    return texto;
+  } catch (error) {
+    throw new Error(
+      file.name + ": não foi possível ler o Excel. " +
+      (error instanceof Error ? error.message : "Arquivo inválido."),
+    );
+  }
+}
+
+async function combinarTextos(files: File[]): Promise<string> {
+  return (await Promise.all(files.map(extrairTextoArquivo))).join("\n");
 }
 
 function ocorrenciasPorCpf(texto: string): Array<{ cpf: string; trecho: string }> {
@@ -211,8 +260,13 @@ function lerConsignadoPorCpf(texto: string): Map<string, number> {
 }
 
 function valorAposRotulo(texto: string, rotulo: RegExp): number {
-  const encontrou = texto.match(rotulo);
-  return encontrou ? numeroBr(encontrou[1]) : 0;
+  const flags = rotulo.flags.includes("g") ? rotulo.flags : rotulo.flags + "g";
+  return round2(
+    Array.from(texto.matchAll(new RegExp(rotulo.source, flags))).reduce(
+      (total, encontrou) => total + numeroBr(encontrou[1]),
+      0,
+    ),
+  );
 }
 
 function lerGuiaFgts(texto: string) {
@@ -234,12 +288,15 @@ function lerGuiaFgts(texto: string) {
 
 function valorDoCodigoDarf(texto: string, codigo: string): number {
   const codigos = Array.from(texto.matchAll(/\b(?:1082|1099|0561|1708)(?:-\d+)?\b/g));
-  const atual = codigos.findIndex((item) => item[0].startsWith(codigo));
-  if (atual < 0) return 0;
-  const inicio = (codigos[atual].index ?? 0) + codigos[atual][0].length;
-  const fim = codigos[atual + 1]?.index ?? Math.min(texto.length, inicio + 1500);
-  const moedas = Array.from(texto.slice(inicio, fim).matchAll(/[\d.]+,\d{2}/g));
-  return moedas.length ? numeroBr(moedas[moedas.length - 1][0]) : 0;
+  let total = 0;
+  codigos.forEach((item, indice) => {
+    if (!item[0].startsWith(codigo)) return;
+    const inicio = (item.index ?? 0) + item[0].length;
+    const fim = codigos[indice + 1]?.index ?? Math.min(texto.length, inicio + 1500);
+    const moedas = Array.from(texto.slice(inicio, fim).matchAll(/[\d.]+,\d{2}/g));
+    if (moedas.length) total = round2(total + numeroBr(moedas[moedas.length - 1][0]));
+  });
+  return total;
 }
 
 function distribuir(total: number, bases: number[]): number[] {
@@ -264,10 +321,10 @@ export async function processarEncargosDocumentos(
     const [colaboradores, textoFgts, textoConsignado, textoGuia, textoDarf] =
       await Promise.all([
         lerColaboradoresLiquidos(arquivos.liquidos),
-        extrairTextoPdf(arquivos.fgtsMensal),
-        extrairTextoPdf(arquivos.consignado),
-        extrairTextoPdf(arquivos.guiaFgts),
-        extrairTextoPdf(arquivos.darf),
+        combinarTextos(arquivos.fgtsMensal),
+        combinarTextos(arquivos.consignado),
+        combinarTextos(arquivos.guiaFgts),
+        combinarTextos(arquivos.darf),
       ]);
 
     const fgtsPorCpf = lerFgtsPorCpf(textoFgts);
@@ -620,3 +677,4 @@ export async function exportarExcelEncargos(
     "rateio-encargos-" + registro.competencia.slice(0, 7) + ".xlsx",
   );
 }
+
