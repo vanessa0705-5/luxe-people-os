@@ -445,7 +445,7 @@ export function processarRateio(
     return { resultado: null, inconsistencias };
   }
 
-  return { resultado: { cnpjs, resumo }, inconsistencias: [] };
+  return { resultado: aplicarModo({ cnpjs, resumo }, modo), inconsistencias: [] };
 }
 
 export async function salvarRateio(input: {
