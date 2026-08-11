@@ -234,12 +234,43 @@ function RateioFolhaPage() {
       }
     >
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="novo">Novo Rateio</TabsTrigger>
+          <TabsTrigger value="liquidos">Relatório de Líquidos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="novo" className="mt-5 space-y-5">
+          <Card className="border-border/60 p-5 shadow-elegant">
+            <h2 className="font-semibold">Escopo do rateio</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Escolha se o processamento deve considerar a folha, os encargos ou ambos.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {MODOS_RATEIO.map((item) => (
+                <button
+                  key={item.valor}
+                  type="button"
+                  aria-pressed={modo === item.valor}
+                  onClick={() => {
+                    setModo(item.valor);
+                    setResultado(null);
+                    setSalvoAtual(null);
+                  }}
+                  className={
+                    "rounded-lg border p-4 text-left transition-colors " +
+                    (modo === item.valor
+                      ? "border-gold bg-accent/40 shadow-gold"
+                      : "border-border hover:border-gold/50 hover:bg-accent/20")
+                  }
+                >
+                  <span className="block text-sm font-semibold">{item.titulo}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{item.descricao}</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+
           <Card className="border-border/60 p-5 shadow-elegant">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -251,6 +282,7 @@ function RateioFolhaPage() {
               <Badge variant={progresso === 100 ? "default" : "secondary"}>{progresso}% pronto</Badge>
             </div>
             <Progress value={progresso} className="mb-6 h-2" />
+
 
             <div className="grid gap-5 lg:grid-cols-3">
               <div className="space-y-2">
