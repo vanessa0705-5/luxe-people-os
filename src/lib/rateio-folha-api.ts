@@ -268,7 +268,9 @@ export async function importarRateio(file: File): Promise<RateioLinha[]> {
 export function processarRateio(
   folha: FolhaLinha[],
   rateios: RateioLinha[],
+  modo: ModoRateio = "completo",
 ): { resultado: ResultadoRateio | null; inconsistencias: InconsistenciaRateio[] } {
+
   const inconsistencias: InconsistenciaRateio[] = [];
   const folhaPorMatricula = new Map<string, FolhaLinha>();
   const duplicadas = new Set<string>();
