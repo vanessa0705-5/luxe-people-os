@@ -558,7 +558,7 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
         competencia = Number.isFinite(numerico) && numerico > 20000 ? dataDeSerial(numerico) : valor;
       }
 
-      const servico = texto.match(/Servi[çc]o:s*d*s*-?s*(.+?)s*-s*CNPJ:s*([d./-]+)/i);
+      const servico = texto.match(/Servi[çc]o:\s*\d*\s*-?\s*(.+?)\s*-\s*CNPJ:\s*([\d./-]+)/i);
       if (servico) {
         atual = { tomador: servico[1].trim(), cnpj: onlyDigits(servico[2]) };
         const chave = atual.cnpj + "|" + normalize(atual.tomador);
@@ -571,9 +571,9 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
         continue;
       if (!atual) continue;
 
-      const cpf = cells.find((cell) => /^d{11}$/.test(onlyDigits(cell)) && onlyDigits(cell).length === 11);
+      const cpf = cells.find((cell) => /^\d{11}$/.test(onlyDigits(cell)) && onlyDigits(cell).length === 11);
       if (!cpf) continue;
-      const valores = cells.filter((cell) => cell && cell !== cpf && /[d]/.test(cell));
+      const valores = cells.filter((cell) => cell && cell !== cpf && /[\d]/.test(cell));
       const valor = numero(valores[valores.length - 1]);
       if (!valor) continue;
 
@@ -594,7 +594,7 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
     }))
     .filter((item) => item.colaboradores > 0);
 
-  const ehProlabore = (nome: string) => /pros*labore/.test(normalize(nome));
+  const ehProlabore = (nome: string) => /\bpro\s*labore\b/.test(normalize(nome));
   const prolabore = grupos.filter((item) => ehProlabore(item.tomador));
   const tomadores = grupos
     .filter((item) => !ehProlabore(item.tomador))
