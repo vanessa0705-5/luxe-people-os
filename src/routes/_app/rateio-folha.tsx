@@ -224,6 +224,42 @@ function RateioFolhaPage() {
     () => (relatorio ? origensDoRelatorioLiquidos(relatorio) : { folha: [], rateios: [] }),
     [relatorio],
   );
+  const registroExportacao = useMemo<RateioFolhaRegistro | null>(() => {
+    if (salvoAtual) return salvoAtual;
+    if (!resultado) return null;
+    return {
+      id: "previsualizacao",
+      competencia: competencia + "-01",
+      arquivo_folha_nome:
+        modo === "folha" ? arquivoLiquidos?.name ?? null : arquivoFolha?.name ?? null,
+      arquivo_rateio_nome:
+        modo === "folha" ? arquivoLiquidos?.name ?? null : arquivoRateio?.name ?? null,
+      quantidade_empresas: resultado.resumo.empresas,
+      quantidade_tomadores: resultado.resumo.tomadores,
+      quantidade_colaboradores: resultado.resumo.colaboradores,
+      total_folha: resultado.resumo.folha,
+      total_fgts_consignado: resultado.resumo.fgtsConsignado,
+      total_inss: resultado.resumo.inss,
+      total_irrf: resultado.resumo.irrf,
+      total_geral: resultado.resumo.totalGeral,
+      resultado,
+      folha_origem: modo === "folha" ? origensLiquidos.folha : folha,
+      rateio_origem: modo === "folha" ? origensLiquidos.rateios : rateios,
+      created_at: new Date().toISOString(),
+      created_by: null,
+    };
+  }, [
+    arquivoFolha,
+    arquivoLiquidos,
+    arquivoRateio,
+    competencia,
+    folha,
+    modo,
+    origensLiquidos,
+    rateios,
+    resultado,
+    salvoAtual,
+  ]);
 
   async function selecionarFolha(file: File | null) {
     setArquivoFolha(file);
@@ -514,15 +550,15 @@ function RateioFolhaPage() {
                   Todos os percentuais, CNPJs e totais foram conferidos.
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {registroExportacao && (
+                    <Button variant="outline" onClick={() => exportarExcel(registroExportacao)}>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar Excel
+                    </Button>
+                  )}
                   {salvoAtual && (
-                    <>
-                      <Button variant="outline" onClick={() => exportarExcel(salvoAtual)}>
-                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
-                      </Button>
-                      <Button variant="outline" onClick={() => exportarPdf(salvoAtual)}>
-                        <Download className="mr-2 h-4 w-4" /> PDF
-                      </Button>
-                    </>
+                    <Button variant="outline" onClick={() => exportarPdf(salvoAtual)}>
+                      <Download className="mr-2 h-4 w-4" /> PDF
+                    </Button>
                   )}
                   <Button
                     onClick={() => salvarMutation.mutate()}
