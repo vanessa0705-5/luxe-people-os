@@ -2,11 +2,18 @@ import { Building2, ReceiptText, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatarMoeda, type ResultadoRateio, type RateioTomador } from "@/lib/rateio-folha-api";
+import {
+  formatarMoeda,
+  type ModoRateio,
+  type ResultadoRateio,
+  type RateioTomador,
+} from "@/lib/rateio-folha-api";
 
 interface Props {
   resultado: ResultadoRateio;
+  modo?: ModoRateio;
 }
+
 
 type ChaveValor = keyof Pick<RateioTomador, "folha" | "fgtsConsignado" | "inss" | "irrf">;
 
