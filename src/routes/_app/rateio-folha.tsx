@@ -115,11 +115,13 @@ function resultadoDoRelatorioLiquidos(relatorio: RelatorioLiquidos): ResultadoRa
       empresas: cnpjs.length,
       tomadores: relatorio.tomadores.length,
       colaboradores: relatorio.totalColaboradores,
-      folha: relatorio.totalGeral,
+      folha: relatorio.totalRateado,
       fgtsConsignado: 0,
       inss: 0,
       irrf: 0,
       totalGeral: relatorio.totalGeral,
+      prolabore: relatorio.totalProlabore,
+      totalArquivo: relatorio.totalGeral,
     },
   };
 }
