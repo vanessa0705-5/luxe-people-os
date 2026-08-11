@@ -47,6 +47,10 @@ import {
   type ResultadoRateio,
 } from "@/lib/rateio-folha-api";
 
+import {
+  processarEncargosDocumentos,
+  type ProcessamentoEncargos,
+} from "@/lib/encargos-documentos";
 
 export const Route = createFileRoute("/_app/rateio-folha")({
   head: () => ({
@@ -183,6 +187,12 @@ function RateioFolhaPage() {
   const [arquivoLiquidos, setArquivoLiquidos] = useState<File | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioLiquidos | null>(null);
   const [lendoLiquidos, setLendoLiquidos] = useState(false);
+  const [arquivoFgtsMensal, setArquivoFgtsMensal] = useState<File | null>(null);
+  const [arquivoConsignado, setArquivoConsignado] = useState<File | null>(null);
+  const [arquivoGuiaFgts, setArquivoGuiaFgts] = useState<File | null>(null);
+  const [arquivoDarf, setArquivoDarf] = useState<File | null>(null);
+  const [processandoEncargos, setProcessandoEncargos] = useState(false);
+  const [processamentoEncargos, setProcessamentoEncargos] = useState<ProcessamentoEncargos | null>(null);
 
   async function selecionarLiquidos(file: File | null) {
     setArquivoLiquidos(file);
@@ -221,7 +231,11 @@ function RateioFolhaPage() {
   );
 
   const progresso =
-    modo === "folha" ? (relatorio ? 100 : 0) : (folha.length ? 50 : 0) + (rateios.length ? 50 : 0);
+    modo === "folha"
+      ? relatorio
+        ? 100
+        : 0
+      : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado, arquivoGuiaFgts, arquivoDarf].filter(Boolean).length * 20;
   const origensLiquidos = useMemo(
     () => (relatorio ? origensDoRelatorioLiquidos(relatorio) : { folha: [], rateios: [] }),
     [relatorio],
@@ -233,9 +247,19 @@ function RateioFolhaPage() {
       id: "previsualizacao",
       competencia: competencia + "-01",
       arquivo_folha_nome:
-        modo === "folha" ? arquivoLiquidos?.name ?? null : arquivoFolha?.name ?? null,
+        modo === "folha"
+          ? arquivoLiquidos?.name ?? null
+          : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado]
+              .filter((arquivo): arquivo is File => Boolean(arquivo))
+              .map((arquivo) => arquivo.name)
+              .join(", ") || null,
       arquivo_rateio_nome:
-        modo === "folha" ? arquivoLiquidos?.name ?? null : arquivoRateio?.name ?? null,
+        modo === "folha"
+          ? arquivoLiquidos?.name ?? null
+          : [arquivoGuiaFgts, arquivoDarf]
+              .filter((arquivo): arquivo is File => Boolean(arquivo))
+              .map((arquivo) => arquivo.name)
+              .join(", ") || null,
       quantidade_empresas: resultado.resumo.empresas,
       quantidade_tomadores: resultado.resumo.tomadores,
       quantidade_colaboradores: resultado.resumo.colaboradores,
@@ -251,7 +275,11 @@ function RateioFolhaPage() {
       created_by: null,
     };
   }, [
+    arquivoConsignado,
+    arquivoDarf,
+    arquivoFgtsMensal,
     arquivoFolha,
+    arquivoGuiaFgts,
     arquivoLiquidos,
     arquivoRateio,
     competencia,
@@ -299,28 +327,51 @@ function RateioFolhaPage() {
     }
   }
 
-  function processar() {
+  async function processar() {
     if (!competencia) return toast.error("Selecione a competência.");
 
     if (modo === "folha") {
       if (!relatorio) return toast.error("Envie o arquivo de líquidos para processar a Folha.");
       setInconsistencias([]);
+      setProcessamentoEncargos(null);
       setResultado(resultadoDoRelatorioLiquidos(relatorio));
       setSalvoAtual(null);
       toast.success("Arquivo de líquidos processado e rateado por Departamento/Tomador.");
       return;
     }
 
-    if (!folha.length || !rateios.length)
-      return toast.error("Importe o arquivo de encargos e a planilha de rateio.");
+    if (
+      !arquivoLiquidos ||
+      !arquivoFgtsMensal ||
+      !arquivoConsignado ||
+      !arquivoGuiaFgts ||
+      !arquivoDarf
+    ) {
+      return toast.error("Envie os cinco documentos obrigatórios dos encargos.");
+    }
 
-    const processado = processarRateio(folha, rateios, "encargos");
-    setInconsistencias(processado.inconsistencias);
-    setResultado(processado.resultado);
+    setProcessandoEncargos(true);
+    setResultado(null);
     setSalvoAtual(null);
-    if (processado.inconsistencias.length)
-      toast.error("O processamento foi bloqueado por inconsistências.");
-    else toast.success("Encargos processados e conferidos com sucesso.");
+    try {
+      const processado = await processarEncargosDocumentos({
+        liquidos: arquivoLiquidos,
+        fgtsMensal: arquivoFgtsMensal,
+        consignado: arquivoConsignado,
+        guiaFgts: arquivoGuiaFgts,
+        darf: arquivoDarf,
+      });
+      setProcessamentoEncargos(processado);
+      setInconsistencias(processado.inconsistencias);
+      setResultado(processado.resultado);
+      if (processado.inconsistencias.length) {
+        toast.error("O processamento foi bloqueado. Confira as inconsistências por arquivo.");
+      } else {
+        toast.success("Encargos processados e conferidos por Departamento/Tomador.");
+      }
+    } finally {
+      setProcessandoEncargos(false);
+    }
   }
 
   const salvarMutation = useMutation({
@@ -328,9 +379,19 @@ function RateioFolhaPage() {
       salvarRateio({
         competencia,
         arquivoFolhaNome:
-          modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoFolha?.name ?? "reprocessamento",
+          modo === "folha"
+            ? arquivoLiquidos?.name ?? "relatorio-liquidos"
+            : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado]
+                .filter((arquivo): arquivo is File => Boolean(arquivo))
+                .map((arquivo) => arquivo.name)
+                .join(", "),
         arquivoRateioNome:
-          modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoRateio?.name ?? "reprocessamento",
+          modo === "folha"
+            ? arquivoLiquidos?.name ?? "relatorio-liquidos"
+            : [arquivoGuiaFgts, arquivoDarf]
+                .filter((arquivo): arquivo is File => Boolean(arquivo))
+                .map((arquivo) => arquivo.name)
+                .join(", "),
         folha: modo === "folha" ? origensLiquidos.folha : folha,
         rateios: modo === "folha" ? origensLiquidos.rateios : rateios,
         resultado: resultado!,
@@ -363,6 +424,11 @@ function RateioFolhaPage() {
     setArquivoRateio(null);
     setArquivoLiquidos(null);
     setRelatorio(null);
+    setArquivoFgtsMensal(null);
+    setArquivoConsignado(null);
+    setArquivoGuiaFgts(null);
+    setArquivoDarf(null);
+    setProcessamentoEncargos(null);
     setFolha([]);
     setRateios([]);
     setResultado(null);
@@ -433,6 +499,7 @@ function RateioFolhaPage() {
                       setModo(item.valor);
                       setResultado(null);
                       setSalvoAtual(null);
+                      setProcessamentoEncargos(null);
                     }}
                     className={
                       "rounded-lg border p-4 text-left transition-colors " +
@@ -484,22 +551,70 @@ function RateioFolhaPage() {
               ) : (
                 <>
                   <UploadCard
-                    id="arquivo-encargos"
-                    titulo="Arquivo de Encargos"
-                    descricao="Matrícula, Nome, CNPJ, FGTS, Consignado, INSS e IRRF"
-                    arquivo={arquivoFolha}
-                    linhas={folha.length}
-                    carregando={lendoFolha}
-                    onChange={selecionarFolha}
+                    id="encargos-liquidos"
+                    titulo="Relatório de Líquidos por serviço"
+                    descricao="Base de CPF, Departamento/Tomador e valor líquido"
+                    arquivo={arquivoLiquidos}
+                    linhas={relatorio?.totalColaboradores ?? 0}
+                    carregando={lendoLiquidos}
+                    accept=".xls,.xlsx,.csv"
+                    onChange={selecionarLiquidos}
                   />
                   <UploadCard
-                    id="arquivo-rateio"
-                    titulo="Upload do Rateio"
-                    descricao="Matrícula, Departamento/Tomador e Percentual"
-                    arquivo={arquivoRateio}
-                    linhas={rateios.length}
-                    carregando={lendoRateio}
-                    onChange={selecionarRateio}
+                    id="encargos-fgts"
+                    titulo="Relatório do FGTS Mensal"
+                    descricao="PDF com FGTS individual por colaborador"
+                    arquivo={arquivoFgtsMensal}
+                    linhas={0}
+                    carregando={false}
+                    accept=".pdf"
+                    onChange={(file) => {
+                      setArquivoFgtsMensal(file);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                  />
+                  <UploadCard
+                    id="encargos-consignado"
+                    titulo="Relatório do FGTS Consignado"
+                    descricao="PDF com parcelas por CPF"
+                    arquivo={arquivoConsignado}
+                    linhas={0}
+                    carregando={false}
+                    accept=".pdf"
+                    onChange={(file) => {
+                      setArquivoConsignado(file);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                  />
+                  <UploadCard
+                    id="encargos-guia-fgts"
+                    titulo="Guia FGTS + Consignado"
+                    descricao="PDF usado para conferir os totais"
+                    arquivo={arquivoGuiaFgts}
+                    linhas={0}
+                    carregando={false}
+                    accept=".pdf"
+                    onChange={(file) => {
+                      setArquivoGuiaFgts(file);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                  />
+                  <UploadCard
+                    id="encargos-darf"
+                    titulo="DARF Previdência + IRRF"
+                    descricao="PDF com os códigos 1082, 1099, 0561 e 1708"
+                    arquivo={arquivoDarf}
+                    linhas={0}
+                    carregando={false}
+                    accept=".pdf"
+                    onChange={(file) => {
+                      setArquivoDarf(file);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
                   />
                 </>
               )}
@@ -512,12 +627,17 @@ function RateioFolhaPage() {
                 disabled={
                   modo === "folha"
                     ? lendoLiquidos || !relatorio
-                    : lendoFolha || lendoRateio || !folha.length || !rateios.length
+                    : processandoEncargos ||
+                      !arquivoLiquidos ||
+                      !arquivoFgtsMensal ||
+                      !arquivoConsignado ||
+                      !arquivoGuiaFgts ||
+                      !arquivoDarf
                 }
                 className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
               >
                 <Play className="mr-2 h-4 w-4" />
-                {modo === "folha" ? "Processar Folha" : "Processar Encargos"}
+                {processandoEncargos ? "Processando documentos..." : modo === "folha" ? "Processar Folha" : "Processar Encargos"}
               </Button>
             </div>
           </Card>
@@ -575,7 +695,11 @@ function RateioFolhaPage() {
                   </Button>
                 </div>
               </Card>
-              <RateioResultado resultado={resultado} modo={modo} />
+              {modo === "encargos" && processamentoEncargos ? (
+                <EncargosResultado dados={processamentoEncargos} />
+              ) : (
+                <RateioResultado resultado={resultado} modo={modo} />
+              )}
             </>
           )}
         </TabsContent>
@@ -637,6 +761,127 @@ function RateioFolhaPage() {
         </TabsContent>
       </Tabs>
     </PageShell>
+  );
+}
+
+
+function EncargosResultado({ dados }: { dados: ProcessamentoEncargos }) {
+  if (!dados.resultado) return null;
+  const resumo = dados.resultado.resumo as ResultadoRateio["resumo"] & {
+    fgts?: number;
+    consignado?: number;
+    totalRateavel?: number;
+  };
+  const cards = [
+    ["Departamentos/Tomadores", resumo.tomadores.toLocaleString("pt-BR")],
+    ["Colaboradores", resumo.colaboradores.toLocaleString("pt-BR")],
+    ["FGTS", formatarMoeda(resumo.fgts ?? 0)],
+    ["Consignado", formatarMoeda(resumo.consignado ?? 0)],
+    ["FGTS + Consignado", formatarMoeda(resumo.fgtsConsignado)],
+    ["INSS rateado", formatarMoeda(resumo.inss)],
+    ["IRRF rateado", formatarMoeda(resumo.irrf)],
+    ["Fora do rateio", formatarMoeda(dados.foraRateio.total)],
+    ["Total geral", formatarMoeda(resumo.totalGeral)],
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map(([rotulo, valor]) => (
+          <Card key={rotulo} className="border-border/60 p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {rotulo}
+            </p>
+            <p className="mt-2 text-xl font-semibold">{valor}</p>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="overflow-hidden border-border/60 shadow-elegant">
+        <div className="border-b border-border p-5">
+          <h3 className="font-semibold">Resumo por Departamento/Tomador</h3>
+          <p className="text-sm text-muted-foreground">
+            Valores conferidos na tela antes da exportação.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-5 py-3">Departamento/Tomador</th>
+                <th className="px-3 py-3 text-center">Colaboradores</th>
+                <th className="px-3 py-3 text-right">FGTS</th>
+                <th className="px-3 py-3 text-right">Consignado</th>
+                <th className="px-3 py-3 text-right">INSS</th>
+                <th className="px-3 py-3 text-right">IRRF</th>
+                <th className="px-5 py-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dados.detalhes.map((item) => (
+                <tr key={item.tomador} className="border-b border-border/60">
+                  <td className="px-5 py-3 font-medium">{item.tomador}</td>
+                  <td className="px-3 py-3 text-center">{item.colaboradores}</td>
+                  <td className="px-3 py-3 text-right">{formatarMoeda(item.fgts)}</td>
+                  <td className="px-3 py-3 text-right">{formatarMoeda(item.consignado)}</td>
+                  <td className="px-3 py-3 text-right">{formatarMoeda(item.inss)}</td>
+                  <td className="px-3 py-3 text-right">{formatarMoeda(item.irrf)}</td>
+                  <td className="px-5 py-3 text-right font-semibold">
+                    {formatarMoeda(item.totalGeral)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card className="border-border/60 p-5">
+          <h3 className="font-semibold">Valores fora do rateio</h3>
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <span>Pró-labore — DARF 1099</span>
+              <strong>{formatarMoeda(dados.foraRateio.prolabore)}</strong>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>Serviços PJ — DARF 1708</span>
+              <strong>{formatarMoeda(dados.foraRateio.servicosPj)}</strong>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-border pt-2">
+              <span>Total fora do rateio</span>
+              <strong>{formatarMoeda(dados.foraRateio.total)}</strong>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border-border/60 p-5">
+          <h3 className="font-semibold">Conferência Relatórios x Guias</h3>
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <span>FGTS: relatório / guia</span>
+              <strong>
+                {formatarMoeda(dados.conferencia.fgtsRelatorio)} /{" "}
+                {formatarMoeda(dados.conferencia.fgtsGuia)}
+              </strong>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>Consignado: relatório / guia</span>
+              <strong>
+                {formatarMoeda(dados.conferencia.consignadoRelatorio)} /{" "}
+                {formatarMoeda(dados.conferencia.consignadoGuia)}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between gap-4 border-t border-border pt-2">
+              <span>Status</span>
+              <Badge variant={dados.conferencia.conferido ? "default" : "destructive"}>
+                {dados.conferencia.conferido ? "Conferido" : "Divergente"}
+              </Badge>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
