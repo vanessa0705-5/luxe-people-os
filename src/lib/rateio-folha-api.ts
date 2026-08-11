@@ -17,6 +17,32 @@ export interface RateioLinha {
   percentual: number;
 }
 
+/** Escopo do rateio: folha + encargos, somente folha ou somente encargos. */
+export type ModoRateio = "completo" | "folha" | "encargos";
+
+export const MODOS_RATEIO: Array<{ valor: ModoRateio; titulo: string; descricao: string }> = [
+  { valor: "completo", titulo: "Folha + Encargos", descricao: "Rateia a folha e todos os encargos." },
+  { valor: "folha", titulo: "Somente Folha", descricao: "Rateia apenas os valores da folha." },
+  { valor: "encargos", titulo: "Somente Encargos", descricao: "Rateia apenas FGTS, consignado, INSS e IRRF." },
+];
+
+export interface RelatorioLiquidosTomador {
+  tomador: string;
+  cnpj: string;
+  colaboradores: number;
+  total: number;
+}
+
+export interface RelatorioLiquidos {
+  empresa: string;
+  cnpjEmpresa: string;
+  competencia: string;
+  tomadores: RelatorioLiquidosTomador[];
+  totalColaboradores: number;
+  totalGeral: number;
+}
+
+
 export interface InconsistenciaRateio {
   tipo: "matricula" | "tomador" | "percentual" | "cnpj" | "valor" | "total";
   matricula?: string;
