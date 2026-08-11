@@ -64,8 +64,11 @@ function TabelaRateio({
   );
 }
 
-export function RateioResultado({ resultado }: Props) {
+export function RateioResultado({ resultado, modo = "completo" }: Props) {
   if (!resultado.cnpjs.length) return null;
+  const mostrarFolha = modo !== "encargos";
+  const mostrarEncargos = modo !== "folha";
+
 
   return (
     <div className="space-y-5">
