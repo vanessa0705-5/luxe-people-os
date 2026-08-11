@@ -27,7 +27,6 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import {
-  MODOS_RATEIO,
   excluirRateio,
   exportarExcel,
   exportarPdf,
@@ -61,6 +60,20 @@ export const Route = createFileRoute("/_app/rateio-folha")({
 
 const competenciaAtual = new Date().toISOString().slice(0, 7);
 
+const OPCOES_RATEIO = [
+  {
+    valor: "folha" as const,
+    titulo: "Folha",
+    descricao: "Rateia somente os valores da folha por CNPJ e tomador.",
+  },
+  {
+    valor: "encargos" as const,
+    titulo: "Encargos",
+    descricao: "Rateia FGTS, consignado, INSS e IRRF por CNPJ e tomador.",
+  },
+];
+
+
 function RateioFolhaPage() {
   const queryClient = useQueryClient();
   const { isAdminPrincipal } = useAuth();
@@ -76,7 +89,7 @@ function RateioFolhaPage() {
   const [lendoFolha, setLendoFolha] = useState(false);
   const [lendoRateio, setLendoRateio] = useState(false);
   const [filtroCompetencia, setFiltroCompetencia] = useState("");
-  const [modo, setModo] = useState<ModoRateio>("completo");
+  const [modo, setModo] = useState<ModoRateio>("folha");
   const [arquivoLiquidos, setArquivoLiquidos] = useState<File | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioLiquidos | null>(null);
   const [lendoLiquidos, setLendoLiquidos] = useState(false);
@@ -197,6 +210,7 @@ function RateioFolhaPage() {
 
   function novoProcessamento() {
     setCompetencia(competenciaAtual);
+    setModo("folha");
     setArquivoFolha(null);
     setArquivoRateio(null);
     setFolha([]);
@@ -209,6 +223,7 @@ function RateioFolhaPage() {
 
   function reprocessar(registro: RateioFolhaRegistro) {
     setCompetencia(registro.competencia.slice(0, 7));
+    setModo("folha");
     setArquivoFolha(null);
     setArquivoRateio(null);
     setFolha(registro.folha_origem ?? []);
@@ -242,47 +257,45 @@ function RateioFolhaPage() {
 
         <TabsContent value="novo" className="mt-5 space-y-5">
           <Card className="border-border/60 p-5 shadow-elegant">
-            <h2 className="font-semibold">Escopo do rateio</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Escolha se o processamento deve considerar a folha, os encargos ou ambos.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {MODOS_RATEIO.map((item) => (
-                <button
-                  key={item.valor}
-                  type="button"
-                  aria-pressed={modo === item.valor}
-                  onClick={() => {
-                    setModo(item.valor);
-                    setResultado(null);
-                    setSalvoAtual(null);
-                  }}
-                  className={
-                    "rounded-lg border p-4 text-left transition-colors " +
-                    (modo === item.valor
-                      ? "border-gold bg-accent/40 shadow-gold"
-                      : "border-border hover:border-gold/50 hover:bg-accent/20")
-                  }
-                >
-                  <span className="block text-sm font-semibold">{item.titulo}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">{item.descricao}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="border-border/60 p-5 shadow-elegant">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-semibold">Arquivos do processamento</h2>
                 <p className="text-sm text-muted-foreground">
-                  Importe a folha e a distribuição por tomador.
+                  Escolha Folha ou Encargos e importe os arquivos para processar.
                 </p>
               </div>
               <Badge variant={progresso === 100 ? "default" : "secondary"}>{progresso}% pronto</Badge>
             </div>
-            <Progress value={progresso} className="mb-6 h-2" />
+            <div className="mb-6 space-y-2">
+              <Label>Opção de rateio *</Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {OPCOES_RATEIO.map((item) => (
+                  <button
+                    key={item.valor}
+                    type="button"
+                    aria-pressed={modo === item.valor}
+                    onClick={() => {
+                      setModo(item.valor);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                    className={
+                      "rounded-lg border p-4 text-left transition-colors " +
+                      (modo === item.valor
+                        ? "border-gold bg-accent/40 shadow-gold"
+                        : "border-border hover:border-gold/50 hover:bg-accent/20")
+                    }
+                  >
+                    <span className="block text-sm font-semibold">{item.titulo}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {item.descricao}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
+            <Progress value={progresso} className="mb-6 h-2" />
 
             <div className="grid gap-5 lg:grid-cols-3">
               <div className="space-y-2">
