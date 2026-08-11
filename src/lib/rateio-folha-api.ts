@@ -251,7 +251,7 @@ export async function importarFolha(file: File): Promise<FolhaLinha[]> {
     inss: ["INSS", "Valor INSS"],
     irrf: ["IRRF", "Valor IRRF"],
   };
-  const rows = extrairLinhas(matrizes, [aliases.matricula, aliases.cnpj, aliases.folha], "folha");
+  const rows = extrairLinhas(matrizes, [aliases.matricula, aliases.folha], "folha");
 
   const result = rows
     .map((row) => ({
@@ -274,7 +274,7 @@ export async function importarRateio(file: File): Promise<RateioLinha[]> {
   const matrizes = await matrizesDoArquivo(file);
   const aliases = {
     matricula: ["Matrícula", "Matricula", "Registro", "Chapa", "Código", "Codigo"],
-    tomador: ["Tomador", "Cliente", "Centro de custo", "Centro de Custo"],
+    tomador: ["Departamento/Tomador", "Departamento", "Tomador", "Setor", "Serviço", "Servico", "Cliente", "Centro de custo", "Centro de Custo"],
     percentual: ["Percentual", "%", "Percentual Rateio", "Percentual de Rateio"],
   };
   const rows = extrairLinhas(
@@ -312,7 +312,7 @@ export function processarRateio(
     }
     if (folhaPorMatricula.has(linha.matricula)) duplicadas.add(linha.matricula);
     folhaPorMatricula.set(linha.matricula, linha);
-    if (linha.cnpj.length !== 14) {
+    if (linha.cnpj && linha.cnpj.length !== 14) {
       inconsistencias.push({
         tipo: "cnpj",
         matricula: linha.matricula,
@@ -344,7 +344,7 @@ export function processarRateio(
       inconsistencias.push({
         tipo: "matricula",
         matricula: linha.matricula,
-        mensagem: "Tomador duplicado no rateio da matrícula " + linha.matricula + ".",
+        mensagem: "Departamento/Tomador duplicado no rateio da matrícula " + linha.matricula + ".",
       });
     }
     combinacoes.add(chave);
@@ -366,7 +366,7 @@ export function processarRateio(
       inconsistencias.push({
         tipo: "tomador",
         matricula: linha.matricula,
-        mensagem: "Colaborador sem tomador: " + linha.matricula + " — " + linha.nome + ".",
+        mensagem: "Colaborador sem Departamento/Tomador: " + linha.matricula + " — " + linha.nome + ".",
       });
       continue;
     }
@@ -405,7 +405,8 @@ export function processarRateio(
       const consignadoRateado = parte(linha.consignado, "consignado");
       const inssRateado = parte(linha.inss, "inss");
       const irrfRateado = parte(linha.irrf, "irrf");
-      const porTomador = grupos.get(linha.cnpj) ?? new Map<string, Acumulador>();
+      const chaveEmpresa = linha.cnpj || "SEM_CNPJ";
+      const porTomador = grupos.get(chaveEmpresa) ?? new Map<string, Acumulador>();
       const atual = porTomador.get(distribuicao.tomador) ?? {
         tomador: distribuicao.tomador,
         colaboradores: 0,
@@ -423,7 +424,7 @@ export function processarRateio(
       atual.irrf = round2(atual.irrf + irrfRateado);
       atual.totalGeral = round2(atual.folha + atual.fgtsConsignado + atual.inss + atual.irrf);
       porTomador.set(distribuicao.tomador, atual);
-      grupos.set(linha.cnpj, porTomador);
+      grupos.set(chaveEmpresa, porTomador);
     });
   }
 
@@ -437,7 +438,7 @@ export function processarRateio(
       return {
         cnpj,
         colaboradores: new Set(
-          folha.filter((item) => item.cnpj === cnpj).map((item) => item.matricula),
+          folha.filter((item) => (item.cnpj || "SEM_CNPJ") === cnpj).map((item) => item.matricula),
         ).size,
         tomadores: detalhes.length,
         folha: soma("folha"),
@@ -542,7 +543,32 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
     return String(data.getUTCMonth() + 1).padStart(2, "0") + "/" + data.getUTCFullYear();
   };
 
+  const lerCabecalho = (texto: string, rotulo: RegExp) => {
+    const conteudo = texto.replace(rotulo, "").trim();
+    const cnpjEncontrado = conteudo.match(/(?:^|\s+-\s+)CNPJ:\s*([\d./-]+)/i);
+    const semCnpj =
+      cnpjEncontrado && typeof cnpjEncontrado.index === "number"
+        ? conteudo.slice(0, cnpjEncontrado.index).trim()
+        : conteudo;
+    return {
+      nome: semCnpj.replace(/^\d+\s*-\s*/, "").trim(),
+      cnpj: cnpjEncontrado ? onlyDigits(cnpjEncontrado[1]) : "",
+    };
+  };
+
+  const garantirGrupo = (atual: { tomador: string; cnpj: string }) => {
+    const chave = (atual.cnpj || "SEM_CNPJ") + "|" + normalize(atual.tomador);
+    if (!acumulado.has(chave))
+      acumulado.set(chave, {
+        tomador: atual.tomador,
+        cnpj: atual.cnpj,
+        chaves: new Set(),
+        total: 0,
+      });
+  };
+
   for (const matriz of matrizes) {
+    let contextoServico: { tomador: string; cnpj: string } | null = null;
     let atual: { tomador: string; cnpj: string } | null = null;
 
     for (const linhaBruta of matriz) {
@@ -558,16 +584,32 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
         competencia = Number.isFinite(numerico) && numerico > 20000 ? dataDeSerial(numerico) : valor;
       }
 
-      const servico = texto.match(/Servi[çc]o:\s*\d*\s*-?\s*(.+?)\s*-\s*CNPJ:\s*([\d./-]+)/i);
-      if (servico) {
-        atual = { tomador: servico[1].trim(), cnpj: onlyDigits(servico[2]) };
-        const chave = atual.cnpj + "|" + normalize(atual.tomador);
-        if (!acumulado.has(chave))
-          acumulado.set(chave, { tomador: atual.tomador, cnpj: atual.cnpj, chaves: new Set(), total: 0 });
+      if (/^Servi[çc]o:/i.test(texto)) {
+        const cabecalho = lerCabecalho(texto, /^Servi[çc]o:\s*/i);
+        if (cabecalho.nome) {
+          contextoServico = {
+            tomador: cabecalho.nome,
+            cnpj: cabecalho.cnpj || cnpjEmpresa,
+          };
+          atual = contextoServico;
+          garantirGrupo(atual);
+        }
         continue;
       }
 
-      if (/^(Departamento:|Total da Empresa|RELA[ÇC][ÃA]O|Empregados:|Estagi[áa]rios:|Contribuintes:|C[óo]digo)/i.test(texto))
+      if (/^Departamento:/i.test(texto)) {
+        const cabecalho = lerCabecalho(texto, /^Departamento:\s*/i);
+        if (cabecalho.nome) {
+          atual = {
+            tomador: cabecalho.nome,
+            cnpj: cabecalho.cnpj || contextoServico?.cnpj || cnpjEmpresa,
+          };
+          garantirGrupo(atual);
+        }
+        continue;
+      }
+
+      if (/^(Total da Empresa|RELA[ÇC][ÃA]O|Empregados:|Estagi[áa]rios:|Contribuintes:|C[óo]digo)/i.test(texto))
         continue;
       if (!atual) continue;
 
@@ -577,7 +619,8 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
       const valor = numero(valores[valores.length - 1]);
       if (!valor) continue;
 
-      const grupo = acumulado.get(atual.cnpj + "|" + normalize(atual.tomador))!;
+      const chave = (atual.cnpj || "SEM_CNPJ") + "|" + normalize(atual.tomador);
+      const grupo = acumulado.get(chave)!;
       const chaveColaborador = onlyDigits(cpf);
       if (grupo.chaves.has(chaveColaborador)) continue;
       grupo.chaves.add(chaveColaborador);
@@ -598,11 +641,11 @@ export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLi
   const prolabore = grupos.filter((item) => ehProlabore(item.tomador));
   const tomadores = grupos
     .filter((item) => !ehProlabore(item.tomador))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => a.tomador.localeCompare(b.tomador, "pt-BR"));
 
   if (!tomadores.length)
     throw new Error(
-      "Não foi possível identificar os serviços/tomadores para rateio. Confirme se o arquivo é o relatório da folha por serviço.",
+      "Não foi possível identificar os departamentos/tomadores para rateio. Confirme o formato do relatório.",
     );
 
   const totalRateado = round2(tomadores.reduce((acc, item) => acc + item.total, 0));
