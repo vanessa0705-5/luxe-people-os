@@ -665,47 +665,45 @@ export function formatarCompetencia(value: string): string {
 export async function exportarExcel(registro: RateioFolhaRegistro): Promise<void> {
   const XLSX = await import("xlsx");
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet([
-      {
-        Competência: formatarCompetencia(registro.competencia),
-        Empresas: registro.quantidade_empresas,
-        Tomadores: registro.quantidade_tomadores,
-        Colaboradores: registro.quantidade_colaboradores,
-        "Total Folha": registro.total_folha,
-        "FGTS + Consignado": registro.total_fgts_consignado,
-        INSS: registro.total_inss,
-        IRRF: registro.total_irrf,
-        "Total Geral": registro.total_geral,
-      },
-    ]),
-    "Resumo Geral",
-  );
+  const apenasFolha =
+    registro.total_folha > 0 &&
+    registro.total_fgts_consignado + registro.total_inss + registro.total_irrf === 0;
+  const apenasEncargos = registro.total_folha === 0;
+  const consolidado = new Map<string, { tomador: string; colaboradores: number; valor: number }>();
 
-  const secoes = [
-    ["Folha", "folha"],
-    ["FGTS Consig", "fgtsConsignado"],
-    ["INSS", "inss"],
-    ["IRRF", "irrf"],
-  ] as const;
   for (const cnpj of registro.resultado.cnpjs) {
-    for (const [nome, chave] of secoes) {
-      const dados = cnpj.detalhes.map((item) => ({
-        CNPJ: cnpj.cnpj,
-        Tomador: item.tomador,
-        "Quantidade de Colaboradores": item.colaboradores,
-        Valor: item[chave],
-      }));
-      const sufixo = cnpj.cnpj.slice(-4);
-      XLSX.utils.book_append_sheet(
-        workbook,
-        XLSX.utils.json_to_sheet(dados),
-        (nome + " " + sufixo).slice(0, 31),
+    for (const item of cnpj.detalhes) {
+      const chave = normalize(item.tomador);
+      const atual = consolidado.get(chave) ?? {
+        tomador: item.tomador,
+        colaboradores: 0,
+        valor: 0,
+      };
+      atual.colaboradores += item.colaboradores;
+      atual.valor = round2(
+        atual.valor +
+          (apenasFolha
+            ? item.folha
+            : apenasEncargos
+              ? item.fgtsConsignado + item.inss + item.irrf
+              : item.totalGeral),
       );
+      consolidado.set(chave, atual);
     }
   }
-  XLSX.writeFile(workbook, "rateio-folha-" + registro.competencia.slice(0, 7) + ".xlsx");
+
+  const dados = Array.from(consolidado.values())
+    .sort((a, b) => a.tomador.localeCompare(b.tomador, "pt-BR"))
+    .map((item) => ({
+      Tomador: item.tomador,
+      "Quantidade de colaboradores": item.colaboradores,
+      Valor: item.valor,
+    }));
+
+  const planilha = XLSX.utils.json_to_sheet(dados);
+  planilha["!cols"] = [{ wch: 42 }, { wch: 28 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(workbook, planilha, "Rateio por Tomador");
+  XLSX.writeFile(workbook, "rateio-por-tomador-" + registro.competencia.slice(0, 7) + ".xlsx");
 }
 
 export function exportarPdf(registro: RateioFolhaRegistro): void {
