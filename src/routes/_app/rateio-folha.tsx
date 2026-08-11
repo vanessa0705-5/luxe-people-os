@@ -124,6 +124,44 @@ function resultadoDoRelatorioLiquidos(relatorio: RelatorioLiquidos): ResultadoRa
   };
 }
 
+function origensDoRelatorioLiquidos(relatorio: RelatorioLiquidos): {
+  folha: FolhaLinha[];
+  rateios: RateioLinha[];
+} {
+  const folhaOrigem: FolhaLinha[] = [];
+  const rateioOrigem: RateioLinha[] = [];
+
+  relatorio.tomadores.forEach((item, tomadorIndex) => {
+    const quantidade = Math.max(1, item.colaboradores);
+    const totalCentavos = Math.round(item.total * 100);
+    const baseCentavos = Math.trunc(totalCentavos / quantidade);
+    const centavosRestantes = totalCentavos - baseCentavos * quantidade;
+
+    for (let colaboradorIndex = 0; colaboradorIndex < quantidade; colaboradorIndex += 1) {
+      const matricula = `LIQ-${tomadorIndex + 1}-${colaboradorIndex + 1}`;
+      const valorFolha =
+        (baseCentavos + (colaboradorIndex < centavosRestantes ? 1 : 0)) / 100;
+      folhaOrigem.push({
+        matricula,
+        nome: `Colaborador importado ${colaboradorIndex + 1}`,
+        cnpj: item.cnpj,
+        valorFolha,
+        fgts: 0,
+        consignado: 0,
+        inss: 0,
+        irrf: 0,
+      });
+      rateioOrigem.push({
+        matricula,
+        tomador: item.tomador,
+        percentual: 100,
+      });
+    }
+  });
+
+  return { folha: folhaOrigem, rateios: rateioOrigem };
+}
+
 function RateioFolhaPage() {
   const queryClient = useQueryClient();
   const { isAdminPrincipal } = useAuth();
@@ -182,6 +220,10 @@ function RateioFolhaPage() {
 
   const progresso =
     modo === "folha" ? (relatorio ? 100 : 0) : (folha.length ? 50 : 0) + (rateios.length ? 50 : 0);
+  const origensLiquidos = useMemo(
+    () => (relatorio ? origensDoRelatorioLiquidos(relatorio) : { folha: [], rateios: [] }),
+    [relatorio],
+  );
 
   async function selecionarFolha(file: File | null) {
     setArquivoFolha(file);
@@ -251,8 +293,8 @@ function RateioFolhaPage() {
           modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoFolha?.name ?? "reprocessamento",
         arquivoRateioNome:
           modo === "folha" ? arquivoLiquidos?.name ?? "relatorio-liquidos" : arquivoRateio?.name ?? "reprocessamento",
-        folha: modo === "folha" ? [] : folha,
-        rateios: modo === "folha" ? [] : rateios,
+        folha: modo === "folha" ? origensLiquidos.folha : folha,
+        rateios: modo === "folha" ? origensLiquidos.rateios : rateios,
         resultado: resultado!,
       }),
     onSuccess: (registro) => {
