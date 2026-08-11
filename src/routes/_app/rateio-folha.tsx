@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_app/rateio-folha")({
   head: () => ({
     meta: [
       { title: "Rateio de Folha — Luxe People OS" },
-      { name: "description", content: "Processamento e histórico do rateio da folha por CNPJ e tomador." },
+      { name: "description", content: "Processamento e histórico do rateio da folha por Departamento/Tomador." },
     ],
   }),
   component: RateioFolhaPage,
@@ -64,12 +64,12 @@ const OPCOES_RATEIO = [
   {
     valor: "folha" as const,
     titulo: "Folha",
-    descricao: "Rateia somente os valores da folha por CNPJ e tomador.",
+    descricao: "Rateia somente os valores da folha por Departamento/Tomador.",
   },
   {
     valor: "encargos" as const,
     titulo: "Encargos",
-    descricao: "Rateia FGTS, consignado, INSS e IRRF por CNPJ e tomador.",
+    descricao: "Rateia FGTS, consignado, INSS e IRRF por Departamento/Tomador.",
   },
 ];
 
@@ -196,7 +196,7 @@ function RateioFolhaPage() {
       setSalvoAtual(null);
       const competenciaArquivo = dados.competencia?.match(/(\d{2})\D+(\d{4})/);
       if (competenciaArquivo) setCompetencia(competenciaArquivo[2] + "-" + competenciaArquivo[1]);
-      toast.success(dados.tomadores.length + " tomadores identificados no relatório.");
+      toast.success(dados.tomadores.length + " departamentos/tomadores identificados no relatório.");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Não foi possível ler o relatório de líquidos.",
@@ -307,7 +307,7 @@ function RateioFolhaPage() {
       setInconsistencias([]);
       setResultado(resultadoDoRelatorioLiquidos(relatorio));
       setSalvoAtual(null);
-      toast.success("Arquivo de líquidos processado e rateado por CNPJ e tomador.");
+      toast.success("Arquivo de líquidos processado e rateado por Departamento/Tomador.");
       return;
     }
 
@@ -394,7 +394,7 @@ function RateioFolhaPage() {
   return (
     <PageShell
       title="Rateio de Folha"
-      description="Distribua folha e encargos por CNPJ e tomador com conferência automática."
+      description="Distribua folha e encargos por Departamento/Tomador com conferência automática."
       icon={<WalletCards className="h-5 w-5 text-gold-foreground" />}
       actions={
         <div className="flex gap-2">
@@ -495,7 +495,7 @@ function RateioFolhaPage() {
                   <UploadCard
                     id="arquivo-rateio"
                     titulo="Upload do Rateio"
-                    descricao="Matrícula, Tomador e Percentual"
+                    descricao="Matrícula, Departamento/Tomador e Percentual"
                     arquivo={arquivoRateio}
                     linhas={rateios.length}
                     carregando={lendoRateio}
@@ -604,7 +604,7 @@ function RateioFolhaPage() {
                   <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <th className="px-5 py-3">Competência</th>
                     <th className="px-3 py-3 text-center">CNPJs</th>
-                    <th className="px-3 py-3 text-center">Tomadores</th>
+                    <th className="px-3 py-3 text-center">Departamentos/Tomadores</th>
                     <th className="px-3 py-3 text-center">Colaboradores</th>
                     <th className="px-5 py-3 text-right">Total geral</th>
                     <th className="px-5 py-3 text-right">Ações</th>
