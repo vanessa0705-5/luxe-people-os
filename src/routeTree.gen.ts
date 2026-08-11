@@ -12,12 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppRateioFolhaRouteImport } from './routes/_app/rateio-folha'
-import { Route as AppFinanceiroRouteImport } from './routes/_app/financeiro'
 import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppRateioFolhaRouteImport } from './routes/_app/rateio-folha'
 import { Route as AppNrsRouteImport } from './routes/_app/nrs'
 import { Route as AppMovimentacoesRouteImport } from './routes/_app/movimentacoes'
+import { Route as AppFinanceiroRouteImport } from './routes/_app/financeiro'
 import { Route as AppFeriasRouteImport } from './routes/_app/ferias'
 import { Route as AppEmpresasRouteImport } from './routes/_app/empresas'
 import { Route as AppDocumentosRouteImport } from './routes/_app/documentos'
@@ -44,16 +44,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRateioFolhaRoute = AppRateioFolhaRouteImport.update({
-  id: '/rateio-folha',
-  path: '/rateio-folha',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
-  id: '/financeiro',
-  path: '/financeiro',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppTomadoresRoute = AppTomadoresRouteImport.update({
   id: '/tomadores',
   path: '/tomadores',
@@ -64,6 +54,11 @@ const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRateioFolhaRoute = AppRateioFolhaRouteImport.update({
+  id: '/rateio-folha',
+  path: '/rateio-folha',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppNrsRoute = AppNrsRouteImport.update({
   id: '/nrs',
   path: '/nrs',
@@ -72,6 +67,11 @@ const AppNrsRoute = AppNrsRouteImport.update({
 const AppMovimentacoesRoute = AppMovimentacoesRouteImport.update({
   id: '/movimentacoes',
   path: '/movimentacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFeriasRoute = AppFeriasRouteImport.update({
@@ -143,11 +143,11 @@ export interface FileRoutesByFullPath {
   '/documentos': typeof AppDocumentosRoute
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
+  '/financeiro': typeof AppFinanceiroRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nrs': typeof AppNrsRoute
-  '/relatorios': typeof AppRelatoriosRoute
-  '/financeiro': typeof AppFinanceiroRoute
   '/rateio-folha': typeof AppRateioFolhaRoute
+  '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -164,11 +164,11 @@ export interface FileRoutesByTo {
   '/documentos': typeof AppDocumentosRoute
   '/empresas': typeof AppEmpresasRoute
   '/ferias': typeof AppFeriasRoute
+  '/financeiro': typeof AppFinanceiroRoute
   '/movimentacoes': typeof AppMovimentacoesRoute
   '/nrs': typeof AppNrsRoute
-  '/relatorios': typeof AppRelatoriosRoute
-  '/financeiro': typeof AppFinanceiroRoute
   '/rateio-folha': typeof AppRateioFolhaRoute
+  '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -187,11 +187,11 @@ export interface FileRoutesById {
   '/_app/documentos': typeof AppDocumentosRoute
   '/_app/empresas': typeof AppEmpresasRoute
   '/_app/ferias': typeof AppFeriasRoute
+  '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/movimentacoes': typeof AppMovimentacoesRoute
   '/_app/nrs': typeof AppNrsRoute
-  '/_app/relatorios': typeof AppRelatoriosRoute
-  '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/rateio-folha': typeof AppRateioFolhaRoute
+  '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tomadores': typeof AppTomadoresRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
@@ -210,11 +210,11 @@ export interface FileRouteTypes {
     | '/documentos'
     | '/empresas'
     | '/ferias'
+    | '/financeiro'
     | '/movimentacoes'
     | '/nrs'
-    | '/relatorios'
-    | '/financeiro'
     | '/rateio-folha'
+    | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -231,11 +231,11 @@ export interface FileRouteTypes {
     | '/documentos'
     | '/empresas'
     | '/ferias'
+    | '/financeiro'
     | '/movimentacoes'
     | '/nrs'
-    | '/relatorios'
-    | '/financeiro'
     | '/rateio-folha'
+    | '/relatorios'
     | '/tomadores'
     | '/colaboradores/$id'
   id:
@@ -253,11 +253,11 @@ export interface FileRouteTypes {
     | '/_app/documentos'
     | '/_app/empresas'
     | '/_app/ferias'
+    | '/_app/financeiro'
     | '/_app/movimentacoes'
     | '/_app/nrs'
-    | '/_app/relatorios'
-    | '/_app/financeiro'
     | '/_app/rateio-folha'
+    | '/_app/relatorios'
     | '/_app/tomadores'
     | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
@@ -291,20 +291,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/financeiro': {
-      id: '/_app/financeiro'
-      path: '/financeiro'
-      fullPath: '/financeiro'
-      preLoaderRoute: typeof AppFinanceiroRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/rateio-folha': {
-      id: '/_app/rateio-folha'
-      path: '/rateio-folha'
-      fullPath: '/rateio-folha'
-      preLoaderRoute: typeof AppRateioFolhaRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/tomadores': {
       id: '/_app/tomadores'
       path: '/tomadores'
@@ -319,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatoriosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rateio-folha': {
+      id: '/_app/rateio-folha'
+      path: '/rateio-folha'
+      fullPath: '/rateio-folha'
+      preLoaderRoute: typeof AppRateioFolhaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/nrs': {
       id: '/_app/nrs'
       path: '/nrs'
@@ -331,6 +324,13 @@ declare module '@tanstack/react-router' {
       path: '/movimentacoes'
       fullPath: '/movimentacoes'
       preLoaderRoute: typeof AppMovimentacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/financeiro': {
+      id: '/_app/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AppFinanceiroRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/ferias': {
@@ -425,8 +425,6 @@ const AppColaboradoresRouteWithChildren =
   AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
 
 interface AppRouteChildren {
-  AppFinanceiroRoute: typeof AppFinanceiroRoute
-  AppRateioFolhaRoute: typeof AppRateioFolhaRoute
   AppAdministracaoRoute: typeof AppAdministracaoRoute
   AppAsoRoute: typeof AppAsoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
@@ -437,15 +435,15 @@ interface AppRouteChildren {
   AppDocumentosRoute: typeof AppDocumentosRoute
   AppEmpresasRoute: typeof AppEmpresasRoute
   AppFeriasRoute: typeof AppFeriasRoute
+  AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppMovimentacoesRoute: typeof AppMovimentacoesRoute
   AppNrsRoute: typeof AppNrsRoute
+  AppRateioFolhaRoute: typeof AppRateioFolhaRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTomadoresRoute: typeof AppTomadoresRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppFinanceiroRoute: AppFinanceiroRoute,
-  AppRateioFolhaRoute: AppRateioFolhaRoute,
   AppAdministracaoRoute: AppAdministracaoRoute,
   AppAsoRoute: AppAsoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
@@ -456,8 +454,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppDocumentosRoute: AppDocumentosRoute,
   AppEmpresasRoute: AppEmpresasRoute,
   AppFeriasRoute: AppFeriasRoute,
+  AppFinanceiroRoute: AppFinanceiroRoute,
   AppMovimentacoesRoute: AppMovimentacoesRoute,
   AppNrsRoute: AppNrsRoute,
+  AppRateioFolhaRoute: AppRateioFolhaRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTomadoresRoute: AppTomadoresRoute,
 }

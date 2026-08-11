@@ -17,6 +17,32 @@ export interface RateioLinha {
   percentual: number;
 }
 
+/** Escopo do rateio: folha + encargos, somente folha ou somente encargos. */
+export type ModoRateio = "completo" | "folha" | "encargos";
+
+export const MODOS_RATEIO: Array<{ valor: ModoRateio; titulo: string; descricao: string }> = [
+  { valor: "completo", titulo: "Folha + Encargos", descricao: "Rateia a folha e todos os encargos." },
+  { valor: "folha", titulo: "Somente Folha", descricao: "Rateia apenas os valores da folha." },
+  { valor: "encargos", titulo: "Somente Encargos", descricao: "Rateia apenas FGTS, consignado, INSS e IRRF." },
+];
+
+export interface RelatorioLiquidosTomador {
+  tomador: string;
+  cnpj: string;
+  colaboradores: number;
+  total: number;
+}
+
+export interface RelatorioLiquidos {
+  empresa: string;
+  cnpjEmpresa: string;
+  competencia: string;
+  tomadores: RelatorioLiquidosTomador[];
+  totalColaboradores: number;
+  totalGeral: number;
+}
+
+
 export interface InconsistenciaRateio {
   tipo: "matricula" | "tomador" | "percentual" | "cnpj" | "valor" | "total";
   matricula?: string;
@@ -126,22 +152,42 @@ async function carregarXlsx() {
   return (module.default ?? module) as typeof import("xlsx");
 }
 
+/** Lê o arquivo e devolve as matrizes de valores de cada planilha. */
+export async function matrizesDoArquivo(file: File): Promise<unknown[][][]> {
+  const buffer = await file.arrayBuffer();
+  const XLSX = await carregarXlsx();
+  let matrizes: unknown[][][] = [];
+  try {
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+    matrizes = workbook.SheetNames.map((nome) =>
+      XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[nome], {
+        header: 1,
+        defval: "",
+        raw: false,
+      }),
+    );
+  } catch {
+    matrizes = [];
+  }
+
+  const possuiConteudo = matrizes.some((matriz) =>
+    matriz.some((linha) => (linha ?? []).some((cell) => String(cell ?? "").trim())),
+  );
+  if (possuiConteudo) return matrizes;
+
+  const { lerMatrizesLegado } = await import("@/lib/xls-legado");
+  return lerMatrizesLegado(buffer);
+}
+
 function extrairLinhas(
-  XLSX: typeof import("xlsx"),
-  workbook: import("xlsx").WorkBook,
+  matrizes: unknown[][][],
   obrigatorias: string[][],
   descricao: string,
 ): Record<string, unknown>[] {
   const linhas: Record<string, unknown>[] = [];
   const cabecalhosEncontrados = new Set<string>();
 
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const matriz = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-      header: 1,
-      defval: "",
-      raw: false,
-    });
+  for (const matriz of matrizes) {
     const limite = Math.min(matriz.length, 30);
     let indiceCabecalho = -1;
 
@@ -167,7 +213,7 @@ function extrairLinhas(
     for (const valores of matriz.slice(indiceCabecalho + 1)) {
       const row: Record<string, unknown> = {};
       headers.forEach((header, index) => {
-        if (header) row[header] = valores[index] ?? "";
+        if (header) row[header] = valores?.[index] ?? "";
       });
       if (Object.values(row).some((value) => String(value ?? "").trim())) linhas.push(row);
     }
@@ -188,9 +234,9 @@ function extrairLinhas(
   return linhas;
 }
 
+
 export async function importarFolha(file: File): Promise<FolhaLinha[]> {
-  const XLSX = await carregarXlsx();
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+  const matrizes = await matrizesDoArquivo(file);
   const aliases = {
     matricula: ["Matrícula", "Matricula", "Registro", "Chapa", "Código", "Codigo"],
     nome: ["Nome", "Colaborador", "Nome do colaborador", "Funcionário", "Funcionario"],
@@ -201,12 +247,8 @@ export async function importarFolha(file: File): Promise<FolhaLinha[]> {
     inss: ["INSS", "Valor INSS"],
     irrf: ["IRRF", "Valor IRRF"],
   };
-  const rows = extrairLinhas(
-    XLSX,
-    workbook,
-    [aliases.matricula, aliases.cnpj, aliases.folha],
-    "folha",
-  );
+  const rows = extrairLinhas(matrizes, [aliases.matricula, aliases.cnpj, aliases.folha], "folha");
+
   const result = rows
     .map((row) => ({
       matricula: matricula(campo(row, aliases.matricula)),
@@ -225,19 +267,18 @@ export async function importarFolha(file: File): Promise<FolhaLinha[]> {
 }
 
 export async function importarRateio(file: File): Promise<RateioLinha[]> {
-  const XLSX = await carregarXlsx();
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+  const matrizes = await matrizesDoArquivo(file);
   const aliases = {
     matricula: ["Matrícula", "Matricula", "Registro", "Chapa", "Código", "Codigo"],
     tomador: ["Tomador", "Cliente", "Centro de custo", "Centro de Custo"],
     percentual: ["Percentual", "%", "Percentual Rateio", "Percentual de Rateio"],
   };
   const rows = extrairLinhas(
-    XLSX,
-    workbook,
+    matrizes,
     [aliases.matricula, aliases.tomador, aliases.percentual],
     "rateio",
   );
+
   const result = rows
     .map((row) => ({
       matricula: matricula(campo(row, aliases.matricula)),
@@ -253,7 +294,9 @@ export async function importarRateio(file: File): Promise<RateioLinha[]> {
 export function processarRateio(
   folha: FolhaLinha[],
   rateios: RateioLinha[],
+  modo: ModoRateio = "completo",
 ): { resultado: ResultadoRateio | null; inconsistencias: InconsistenciaRateio[] } {
+
   const inconsistencias: InconsistenciaRateio[] = [];
   const folhaPorMatricula = new Map<string, FolhaLinha>();
   const duplicadas = new Set<string>();
@@ -428,10 +471,143 @@ export function processarRateio(
     return { resultado: null, inconsistencias };
   }
 
-  return { resultado: { cnpjs, resumo }, inconsistencias: [] };
+  return { resultado: aplicarModo({ cnpjs, resumo }, modo), inconsistencias: [] };
+}
+
+/** Zera as parcelas que não pertencem ao modo escolhido e recalcula os totais. */
+export function aplicarModo(resultado: ResultadoRateio, modo: ModoRateio): ResultadoRateio {
+  if (modo === "completo") return resultado;
+  const somenteFolha = modo === "folha";
+  const ajustar = <T extends RateioTomador>(item: T): T => {
+    const folha = somenteFolha ? item.folha : 0;
+    const fgtsConsignado = somenteFolha ? 0 : item.fgtsConsignado;
+    const inss = somenteFolha ? 0 : item.inss;
+    const irrf = somenteFolha ? 0 : item.irrf;
+    return {
+      ...item,
+      folha,
+      fgtsConsignado,
+      inss,
+      irrf,
+      totalGeral: round2(folha + fgtsConsignado + inss + irrf),
+    };
+  };
+
+  const cnpjs = resultado.cnpjs.map((cnpj) => {
+    const detalhes = cnpj.detalhes.map(ajustar);
+    const ajustado = ajustar(cnpj as unknown as RateioTomador);
+    return {
+      ...cnpj,
+      folha: ajustado.folha,
+      fgtsConsignado: ajustado.fgtsConsignado,
+      inss: ajustado.inss,
+      irrf: ajustado.irrf,
+      totalGeral: round2(detalhes.reduce((acc, item) => acc + item.totalGeral, 0)),
+      detalhes,
+    };
+  });
+
+  const resumoAjustado = ajustar(resultado.resumo as unknown as RateioTomador);
+  return {
+    cnpjs,
+    resumo: {
+      ...resultado.resumo,
+      folha: resumoAjustado.folha,
+      fgtsConsignado: resumoAjustado.fgtsConsignado,
+      inss: resumoAjustado.inss,
+      irrf: resumoAjustado.irrf,
+      totalGeral: round2(cnpjs.reduce((acc, item) => acc + item.totalGeral, 0)),
+    },
+  };
+}
+
+/**
+ * Lê o "Relatório de Líquidos por serviço" da folha e devolve apenas os totais
+ * por tomador (serviço) e a quantidade de colaboradores em cada um.
+ */
+export async function importarRelatorioLiquidos(file: File): Promise<RelatorioLiquidos> {
+  const matrizes = await matrizesDoArquivo(file);
+  const acumulado = new Map<string, { tomador: string; cnpj: string; chaves: Set<string>; total: number }>();
+  let empresa = "";
+  let cnpjEmpresa = "";
+  let competencia = "";
+
+  const dataDeSerial = (valor: number) => {
+    const base = Date.UTC(1899, 11, 30) + valor * 86400000;
+    const data = new Date(base);
+    return String(data.getUTCMonth() + 1).padStart(2, "0") + "/" + data.getUTCFullYear();
+  };
+
+  for (const matriz of matrizes) {
+    let atual: { tomador: string; cnpj: string } | null = null;
+
+    for (const linhaBruta of matriz) {
+      const cells = (linhaBruta ?? []).map((cell) => String(cell ?? "").trim());
+      const texto = cells.filter(Boolean).join(" ");
+      if (!texto) continue;
+
+      if (!empresa && /^Empresa:/i.test(texto)) empresa = cells.filter(Boolean)[1] ?? "";
+      if (!cnpjEmpresa && /^CNPJ:/i.test(texto)) cnpjEmpresa = onlyDigits(cells.filter(Boolean)[1]);
+      if (!competencia && /^Compet[êe]ncia:/i.test(texto)) {
+        const valor = cells.filter(Boolean)[1] ?? "";
+        const numerico = Number(valor);
+        competencia = Number.isFinite(numerico) && numerico > 20000 ? dataDeSerial(numerico) : valor;
+      }
+
+      const servico = texto.match(/Servi[çc]o:\s*\d*\s*-?\s*(.+?)\s*-\s*CNPJ:\s*([\d./-]+)/i);
+      if (servico) {
+        atual = { tomador: servico[1].trim(), cnpj: onlyDigits(servico[2]) };
+        const chave = atual.cnpj + "|" + normalize(atual.tomador);
+        if (!acumulado.has(chave))
+          acumulado.set(chave, { tomador: atual.tomador, cnpj: atual.cnpj, chaves: new Set(), total: 0 });
+        continue;
+      }
+
+      if (/^(Departamento:|Total da Empresa|RELA[ÇC][ÃA]O|Empregados:|Estagi[áa]rios:|Contribuintes:|C[óo]digo)/i.test(texto))
+        continue;
+      if (!atual) continue;
+
+      const cpf = cells.find((cell) => /^\d{11}$/.test(onlyDigits(cell)) && onlyDigits(cell).length === 11);
+      if (!cpf) continue;
+      const valores = cells.filter((cell) => cell && cell !== cpf && /[\d]/.test(cell));
+      const valor = numero(valores[valores.length - 1]);
+      if (!valor) continue;
+
+      const grupo = acumulado.get(atual.cnpj + "|" + normalize(atual.tomador))!;
+      const chaveColaborador = onlyDigits(cpf);
+      if (grupo.chaves.has(chaveColaborador)) continue;
+      grupo.chaves.add(chaveColaborador);
+      grupo.total = round2(grupo.total + valor);
+    }
+  }
+
+  const tomadores = Array.from(acumulado.values())
+    .map((item) => ({
+      tomador: item.tomador,
+      cnpj: item.cnpj,
+      colaboradores: item.chaves.size,
+      total: item.total,
+    }))
+    .filter((item) => item.colaboradores > 0)
+    .sort((a, b) => b.total - a.total);
+
+  if (!tomadores.length)
+    throw new Error(
+      "Não foi possível identificar os serviços/tomadores no relatório de líquidos. Confirme se o arquivo é o relatório da folha por serviço.",
+    );
+
+  return {
+    empresa,
+    cnpjEmpresa,
+    competencia,
+    tomadores,
+    totalColaboradores: tomadores.reduce((acc, item) => acc + item.colaboradores, 0),
+    totalGeral: round2(tomadores.reduce((acc, item) => acc + item.total, 0)),
+  };
 }
 
 export async function salvarRateio(input: {
+
   competencia: string;
   arquivoFolhaNome: string;
   arquivoRateioNome: string;

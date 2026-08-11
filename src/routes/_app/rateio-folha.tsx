@@ -27,6 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import {
+  MODOS_RATEIO,
   excluirRateio,
   exportarExcel,
   exportarPdf,
@@ -34,15 +35,19 @@ import {
   formatarMoeda,
   importarFolha,
   importarRateio,
+  importarRelatorioLiquidos,
   listarRateios,
   processarRateio,
   salvarRateio,
   type FolhaLinha,
   type InconsistenciaRateio,
+  type ModoRateio,
   type RateioFolhaRegistro,
   type RateioLinha,
+  type RelatorioLiquidos,
   type ResultadoRateio,
 } from "@/lib/rateio-folha-api";
+
 
 export const Route = createFileRoute("/_app/rateio-folha")({
   head: () => ({
@@ -71,6 +76,29 @@ function RateioFolhaPage() {
   const [lendoFolha, setLendoFolha] = useState(false);
   const [lendoRateio, setLendoRateio] = useState(false);
   const [filtroCompetencia, setFiltroCompetencia] = useState("");
+  const [modo, setModo] = useState<ModoRateio>("completo");
+  const [arquivoLiquidos, setArquivoLiquidos] = useState<File | null>(null);
+  const [relatorio, setRelatorio] = useState<RelatorioLiquidos | null>(null);
+  const [lendoLiquidos, setLendoLiquidos] = useState(false);
+
+  async function selecionarLiquidos(file: File | null) {
+    setArquivoLiquidos(file);
+    setRelatorio(null);
+    if (!file) return;
+    setLendoLiquidos(true);
+    try {
+      const dados = await importarRelatorioLiquidos(file);
+      setRelatorio(dados);
+      toast.success(dados.tomadores.length + " tomadores identificados no relatório.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível ler o relatório de líquidos.",
+      );
+    } finally {
+      setLendoLiquidos(false);
+    }
+  }
+
 
   const { data: historico = [], isLoading: carregandoHistorico } = useQuery({
     queryKey: ["rateios-folha"],
@@ -127,7 +155,7 @@ function RateioFolhaPage() {
     if (!competencia) return toast.error("Selecione a competência.");
     if (!folha.length || !rateios.length)
       return toast.error("Importe as planilhas da folha e do rateio.");
-    const processado = processarRateio(folha, rateios);
+    const processado = processarRateio(folha, rateios, modo);
     setInconsistencias(processado.inconsistencias);
     setResultado(processado.resultado);
     setSalvoAtual(null);
@@ -206,12 +234,43 @@ function RateioFolhaPage() {
       }
     >
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="novo">Novo Rateio</TabsTrigger>
+          <TabsTrigger value="liquidos">Relatório de Líquidos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="novo" className="mt-5 space-y-5">
+          <Card className="border-border/60 p-5 shadow-elegant">
+            <h2 className="font-semibold">Escopo do rateio</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Escolha se o processamento deve considerar a folha, os encargos ou ambos.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {MODOS_RATEIO.map((item) => (
+                <button
+                  key={item.valor}
+                  type="button"
+                  aria-pressed={modo === item.valor}
+                  onClick={() => {
+                    setModo(item.valor);
+                    setResultado(null);
+                    setSalvoAtual(null);
+                  }}
+                  className={
+                    "rounded-lg border p-4 text-left transition-colors " +
+                    (modo === item.valor
+                      ? "border-gold bg-accent/40 shadow-gold"
+                      : "border-border hover:border-gold/50 hover:bg-accent/20")
+                  }
+                >
+                  <span className="block text-sm font-semibold">{item.titulo}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{item.descricao}</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+
           <Card className="border-border/60 p-5 shadow-elegant">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -223,6 +282,7 @@ function RateioFolhaPage() {
               <Badge variant={progresso === 100 ? "default" : "secondary"}>{progresso}% pronto</Badge>
             </div>
             <Progress value={progresso} className="mb-6 h-2" />
+
 
             <div className="grid gap-5 lg:grid-cols-3">
               <div className="space-y-2">
@@ -322,10 +382,98 @@ function RateioFolhaPage() {
                   </Button>
                 </div>
               </Card>
-              <RateioResultado resultado={resultado} />
+              <RateioResultado resultado={resultado} modo={modo} />
             </>
           )}
         </TabsContent>
+
+        <TabsContent value="liquidos" className="mt-5 space-y-5">
+          <Card className="border-border/60 p-5 shadow-elegant">
+            <h2 className="font-semibold">Relatório de Líquidos por serviço</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Importe o relatório da folha e veja apenas os totais por tomador e a quantidade de
+              colaboradores em cada um.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="arquivo-liquidos">Arquivo (.xls, .xlsx ou .csv)</Label>
+              <Input
+                id="arquivo-liquidos"
+                type="file"
+                accept=".xls,.xlsx,.csv"
+                onChange={(e) => selecionarLiquidos(e.target.files?.[0] ?? null)}
+              />
+              {lendoLiquidos && <p className="text-xs text-muted-foreground">Lendo arquivo...</p>}
+              {arquivoLiquidos && !lendoLiquidos && !relatorio && (
+                <p className="text-xs text-destructive">Nenhum tomador identificado neste arquivo.</p>
+              )}
+            </div>
+          </Card>
+
+          {relatorio && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  ["Competência", relatorio.competencia || "—"],
+                  ["Tomadores", relatorio.tomadores.length],
+                  ["Colaboradores", relatorio.totalColaboradores],
+                  ["Total líquido", formatarMoeda(relatorio.totalGeral)],
+                ].map(([label, value]) => (
+                  <Card key={String(label)} className="border-border/60 p-4 shadow-elegant">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+                    <p className="mt-2 text-xl font-semibold">{value}</p>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="overflow-hidden border-border/60 shadow-elegant">
+                <div className="border-b border-border bg-muted/35 px-5 py-4">
+                  <h3 className="font-semibold">Totais por tomador</h3>
+                  {relatorio.empresa && (
+                    <p className="text-xs text-muted-foreground">{relatorio.empresa}</p>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 font-medium">Tomador</th>
+                        <th className="px-3 py-3 font-medium">CNPJ</th>
+                        <th className="px-3 py-3 text-center font-medium">Colaboradores</th>
+                        <th className="px-5 py-3 text-right font-medium">Total líquido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {relatorio.tomadores.map((item) => (
+                        <tr
+                          key={item.cnpj + item.tomador}
+                          className="border-b border-border/60 last:border-0"
+                        >
+                          <td className="px-5 py-3 font-medium">{item.tomador}</td>
+                          <td className="px-3 py-3 text-muted-foreground">{item.cnpj}</td>
+                          <td className="px-3 py-3 text-center">{item.colaboradores}</td>
+                          <td className="px-5 py-3 text-right">{formatarMoeda(item.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30 font-semibold">
+                        <td className="px-5 py-3" colSpan={2}>
+                          Total
+                        </td>
+                        <td className="px-3 py-3 text-center">{relatorio.totalColaboradores}</td>
+                        <td className="px-5 py-3 text-right text-gold">
+                          {formatarMoeda(relatorio.totalGeral)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+
 
         <TabsContent value="historico" className="mt-5">
           <Card className="border-border/60 shadow-elegant">

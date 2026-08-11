@@ -2,11 +2,18 @@ import { Building2, ReceiptText, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatarMoeda, type ResultadoRateio, type RateioTomador } from "@/lib/rateio-folha-api";
+import {
+  formatarMoeda,
+  type ModoRateio,
+  type ResultadoRateio,
+  type RateioTomador,
+} from "@/lib/rateio-folha-api";
 
 interface Props {
   resultado: ResultadoRateio;
+  modo?: ModoRateio;
 }
+
 
 type ChaveValor = keyof Pick<RateioTomador, "folha" | "fgtsConsignado" | "inss" | "irrf">;
 
@@ -57,8 +64,11 @@ function TabelaRateio({
   );
 }
 
-export function RateioResultado({ resultado }: Props) {
+export function RateioResultado({ resultado, modo = "completo" }: Props) {
   if (!resultado.cnpjs.length) return null;
+  const mostrarFolha = modo !== "encargos";
+  const mostrarEncargos = modo !== "folha";
+
 
   return (
     <div className="space-y-5">
@@ -106,44 +116,48 @@ export function RateioResultado({ resultado }: Props) {
               </div>
             </Card>
 
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <ReceiptText className="h-5 w-5 text-gold" />
-                <div>
-                  <h3 className="font-semibold">Folha</h3>
-                  <p className="text-xs text-muted-foreground">Valores da folha distribuídos por tomador.</p>
+            {mostrarFolha && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ReceiptText className="h-5 w-5 text-gold" />
+                  <div>
+                    <h3 className="font-semibold">Folha</h3>
+                    <p className="text-xs text-muted-foreground">Valores da folha distribuídos por tomador.</p>
+                  </div>
                 </div>
-              </div>
-              <TabelaRateio
-                titulo="Rateio da Folha"
-                chave="folha"
-                total={cnpj.folha}
-                detalhes={cnpj.detalhes}
-              />
-            </section>
+                <TabelaRateio
+                  titulo="Rateio da Folha"
+                  chave="folha"
+                  total={cnpj.folha}
+                  detalhes={cnpj.detalhes}
+                />
+              </section>
+            )}
 
-            <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-gold" />
-                <div>
-                  <h3 className="font-semibold">Encargos</h3>
-                  <p className="text-xs text-muted-foreground">
-                    FGTS, consignado, INSS e IRRF separados da folha.
-                  </p>
+            {mostrarEncargos && (
+              <section className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-gold" />
+                  <div>
+                    <h3 className="font-semibold">Encargos</h3>
+                    <p className="text-xs text-muted-foreground">
+                      FGTS, consignado, INSS e IRRF separados da folha.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-4 xl:grid-cols-3">
-                {encargos.map((secao) => (
-                  <TabelaRateio
-                    key={secao.chave}
-                    titulo={secao.titulo}
-                    chave={secao.chave}
-                    total={cnpj[secao.chave]}
-                    detalhes={cnpj.detalhes}
-                  />
-                ))}
-              </div>
-            </section>
+                <div className="grid gap-4 xl:grid-cols-3">
+                  {encargos.map((secao) => (
+                    <TabelaRateio
+                      key={secao.chave}
+                      titulo={secao.titulo}
+                      chave={secao.chave}
+                      total={cnpj[secao.chave]}
+                      detalhes={cnpj.detalhes}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             <Card className="border-border/60 p-5 shadow-elegant">
               <h4 className="mb-4 font-semibold">Resumo final do CNPJ</h4>
@@ -151,12 +165,17 @@ export function RateioResultado({ resultado }: Props) {
                 {[
                   ["Tomadores", cnpj.tomadores],
                   ["Colaboradores", cnpj.colaboradores],
-                  ["Folha", formatarMoeda(cnpj.folha)],
-                  ["FGTS + Consignado", formatarMoeda(cnpj.fgtsConsignado)],
-                  ["INSS", formatarMoeda(cnpj.inss)],
-                  ["IRRF", formatarMoeda(cnpj.irrf)],
+                  ...(mostrarFolha ? [["Folha", formatarMoeda(cnpj.folha)]] : []),
+                  ...(mostrarEncargos
+                    ? [
+                        ["FGTS + Consignado", formatarMoeda(cnpj.fgtsConsignado)],
+                        ["INSS", formatarMoeda(cnpj.inss)],
+                        ["IRRF", formatarMoeda(cnpj.irrf)],
+                      ]
+                    : []),
                   ["Total geral", formatarMoeda(cnpj.totalGeral)],
                 ].map(([label, value]) => (
+
                   <div key={String(label)} className="rounded-lg border border-border bg-background p-3">
                     <p className="text-xs text-muted-foreground">{label}</p>
                     <p className="mt-1 font-semibold">{value}</p>
