@@ -126,22 +126,42 @@ async function carregarXlsx() {
   return (module.default ?? module) as typeof import("xlsx");
 }
 
+/** Lê o arquivo e devolve as matrizes de valores de cada planilha. */
+export async function matrizesDoArquivo(file: File): Promise<unknown[][][]> {
+  const buffer = await file.arrayBuffer();
+  const XLSX = await carregarXlsx();
+  let matrizes: unknown[][][] = [];
+  try {
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+    matrizes = workbook.SheetNames.map((nome) =>
+      XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[nome], {
+        header: 1,
+        defval: "",
+        raw: false,
+      }),
+    );
+  } catch {
+    matrizes = [];
+  }
+
+  const possuiConteudo = matrizes.some((matriz) =>
+    matriz.some((linha) => (linha ?? []).some((cell) => String(cell ?? "").trim())),
+  );
+  if (possuiConteudo) return matrizes;
+
+  const { lerMatrizesLegado } = await import("@/lib/xls-legado");
+  return lerMatrizesLegado(buffer);
+}
+
 function extrairLinhas(
-  XLSX: typeof import("xlsx"),
-  workbook: import("xlsx").WorkBook,
+  matrizes: unknown[][][],
   obrigatorias: string[][],
   descricao: string,
 ): Record<string, unknown>[] {
   const linhas: Record<string, unknown>[] = [];
   const cabecalhosEncontrados = new Set<string>();
 
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const matriz = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-      header: 1,
-      defval: "",
-      raw: false,
-    });
+  for (const matriz of matrizes) {
     const limite = Math.min(matriz.length, 30);
     let indiceCabecalho = -1;
 
@@ -167,7 +187,7 @@ function extrairLinhas(
     for (const valores of matriz.slice(indiceCabecalho + 1)) {
       const row: Record<string, unknown> = {};
       headers.forEach((header, index) => {
-        if (header) row[header] = valores[index] ?? "";
+        if (header) row[header] = valores?.[index] ?? "";
       });
       if (Object.values(row).some((value) => String(value ?? "").trim())) linhas.push(row);
     }
@@ -187,6 +207,7 @@ function extrairLinhas(
 
   return linhas;
 }
+
 
 export async function importarFolha(file: File): Promise<FolhaLinha[]> {
   const XLSX = await carregarXlsx();
