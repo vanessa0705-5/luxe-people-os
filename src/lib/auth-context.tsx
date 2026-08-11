@@ -28,6 +28,7 @@ interface AuthContextValue {
   loading: boolean;
   hasRole: (role: AppRole) => boolean;
   isAdminPrincipal: boolean;
+  isRateioOnly: boolean;
   canDelete: boolean;
   /** RH ou Admin Principal — gestão geral de pessoas. */
   canManageRh: boolean;
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdminPrincipal = hasRole("admin_principal");
+  const isRateioOnly = user?.email?.toLowerCase() === "claudineia.paz@sil.net.br";
 
   const value: AuthContextValue = {
     user,
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     hasRole,
     isAdminPrincipal,
+    isRateioOnly,
     canDelete: isAdminPrincipal,
     canManageRh: isAdminPrincipal || hasRole("rh"),
     canManageSst:
@@ -100,7 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasRole("rh") ||
         hasRole("departamento_pessoal") ||
         hasRole("seguranca_trabalho"),
-    canManageDp: isAdminPrincipal || hasRole("rh") || hasRole("departamento_pessoal"),
+    canManageDp:
+      isRateioOnly || isAdminPrincipal || hasRole("rh") || hasRole("departamento_pessoal"),
     signOut: async () => {
       await supabase.auth.signOut();
     },
