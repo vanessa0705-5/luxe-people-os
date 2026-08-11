@@ -187,10 +187,11 @@ function RateioFolhaPage() {
   const [arquivoLiquidos, setArquivoLiquidos] = useState<File | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioLiquidos | null>(null);
   const [lendoLiquidos, setLendoLiquidos] = useState(false);
-  const [arquivoFgtsMensal, setArquivoFgtsMensal] = useState<File | null>(null);
-  const [arquivoConsignado, setArquivoConsignado] = useState<File | null>(null);
-  const [arquivoGuiaFgts, setArquivoGuiaFgts] = useState<File | null>(null);
-  const [arquivoDarf, setArquivoDarf] = useState<File | null>(null);
+  const [arquivosLiquidosEncargos, setArquivosLiquidosEncargos] = useState<File[]>([]);
+  const [arquivosFgtsMensal, setArquivosFgtsMensal] = useState<File[]>([]);
+  const [arquivosConsignado, setArquivosConsignado] = useState<File[]>([]);
+  const [arquivosGuiaFgts, setArquivosGuiaFgts] = useState<File[]>([]);
+  const [arquivosDarf, setArquivosDarf] = useState<File[]>([]);
   const [processandoEncargos, setProcessandoEncargos] = useState(false);
   const [processamentoEncargos, setProcessamentoEncargos] = useState<ProcessamentoEncargos | null>(null);
 
@@ -235,7 +236,7 @@ function RateioFolhaPage() {
       ? relatorio
         ? 100
         : 0
-      : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado, arquivoGuiaFgts, arquivoDarf].filter(Boolean).length * 20;
+      : [arquivosLiquidosEncargos, arquivosFgtsMensal, arquivosConsignado, arquivosGuiaFgts, arquivosDarf].filter((arquivos) => arquivos.length > 0).length * 20;
   const origensLiquidos = useMemo(
     () => (relatorio ? origensDoRelatorioLiquidos(relatorio) : { folha: [], rateios: [] }),
     [relatorio],
@@ -249,15 +250,13 @@ function RateioFolhaPage() {
       arquivo_folha_nome:
         modo === "folha"
           ? arquivoLiquidos?.name ?? null
-          : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado]
-              .filter((arquivo): arquivo is File => Boolean(arquivo))
+          : [...arquivosLiquidosEncargos, ...arquivosFgtsMensal, ...arquivosConsignado]
               .map((arquivo) => arquivo.name)
               .join(", ") || null,
       arquivo_rateio_nome:
         modo === "folha"
           ? arquivoLiquidos?.name ?? null
-          : [arquivoGuiaFgts, arquivoDarf]
-              .filter((arquivo): arquivo is File => Boolean(arquivo))
+          : [...arquivosGuiaFgts, ...arquivosDarf]
               .map((arquivo) => arquivo.name)
               .join(", ") || null,
       quantidade_empresas: resultado.resumo.empresas,
@@ -275,11 +274,12 @@ function RateioFolhaPage() {
       created_by: null,
     };
   }, [
-    arquivoConsignado,
-    arquivoDarf,
-    arquivoFgtsMensal,
+    arquivosConsignado,
+    arquivosDarf,
+    arquivosFgtsMensal,
+    arquivosGuiaFgts,
+    arquivosLiquidosEncargos,
     arquivoFolha,
-    arquivoGuiaFgts,
     arquivoLiquidos,
     arquivoRateio,
     competencia,
@@ -341,11 +341,11 @@ function RateioFolhaPage() {
     }
 
     if (
-      !arquivoLiquidos ||
-      !arquivoFgtsMensal ||
-      !arquivoConsignado ||
-      !arquivoGuiaFgts ||
-      !arquivoDarf
+      !arquivosLiquidosEncargos.length ||
+      !arquivosFgtsMensal.length ||
+      !arquivosConsignado.length ||
+      !arquivosGuiaFgts.length ||
+      !arquivosDarf.length
     ) {
       return toast.error("Envie os cinco documentos obrigatórios dos encargos.");
     }
@@ -355,11 +355,11 @@ function RateioFolhaPage() {
     setSalvoAtual(null);
     try {
       const processado = await processarEncargosDocumentos({
-        liquidos: arquivoLiquidos,
-        fgtsMensal: arquivoFgtsMensal,
-        consignado: arquivoConsignado,
-        guiaFgts: arquivoGuiaFgts,
-        darf: arquivoDarf,
+        liquidos: arquivosLiquidosEncargos,
+        fgtsMensal: arquivosFgtsMensal,
+        consignado: arquivosConsignado,
+        guiaFgts: arquivosGuiaFgts,
+        darf: arquivosDarf,
       });
       setProcessamentoEncargos(processado);
       setInconsistencias(processado.inconsistencias);
@@ -381,15 +381,13 @@ function RateioFolhaPage() {
         arquivoFolhaNome:
           modo === "folha"
             ? arquivoLiquidos?.name ?? "relatorio-liquidos"
-            : [arquivoLiquidos, arquivoFgtsMensal, arquivoConsignado]
-                .filter((arquivo): arquivo is File => Boolean(arquivo))
+            : [...arquivosLiquidosEncargos, ...arquivosFgtsMensal, ...arquivosConsignado]
                 .map((arquivo) => arquivo.name)
                 .join(", "),
         arquivoRateioNome:
           modo === "folha"
             ? arquivoLiquidos?.name ?? "relatorio-liquidos"
-            : [arquivoGuiaFgts, arquivoDarf]
-                .filter((arquivo): arquivo is File => Boolean(arquivo))
+            : [...arquivosGuiaFgts, ...arquivosDarf]
                 .map((arquivo) => arquivo.name)
                 .join(", "),
         folha: modo === "folha" ? origensLiquidos.folha : folha,
@@ -550,68 +548,57 @@ function RateioFolhaPage() {
                 />
               ) : (
                 <>
-                  <UploadCard
+                  <UploadCardMultiplo
                     id="encargos-liquidos"
                     titulo="Relatório de Líquidos por serviço"
                     descricao="Base de CPF, Departamento/Tomador e valor líquido"
-                    arquivo={arquivoLiquidos}
-                    linhas={relatorio?.totalColaboradores ?? 0}
-                    carregando={lendoLiquidos}
-                    accept=".xls,.xlsx,.csv"
-                    onChange={selecionarLiquidos}
+                    arquivos={arquivosLiquidosEncargos}
+                    onChange={(files) => {
+                      setArquivosLiquidosEncargos(files);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
                   />
-                  <UploadCard
+                  <UploadCardMultiplo
                     id="encargos-fgts"
                     titulo="Relatório do FGTS Mensal"
-                    descricao="PDF com FGTS individual por colaborador"
-                    arquivo={arquivoFgtsMensal}
-                    linhas={0}
-                    carregando={false}
-                    accept=".pdf"
-                    onChange={(file) => {
-                      setArquivoFgtsMensal(file);
+                    descricao="FGTS individual por colaborador"
+                    arquivos={arquivosFgtsMensal}
+                    onChange={(files) => {
+                      setArquivosFgtsMensal(files);
                       setResultado(null);
                       setSalvoAtual(null);
                     }}
                   />
-                  <UploadCard
+                  <UploadCardMultiplo
                     id="encargos-consignado"
                     titulo="Relatório do FGTS Consignado"
-                    descricao="PDF com parcelas por CPF"
-                    arquivo={arquivoConsignado}
-                    linhas={0}
-                    carregando={false}
-                    accept=".pdf"
-                    onChange={(file) => {
-                      setArquivoConsignado(file);
+                    descricao="Parcelas por CPF"
+                    arquivos={arquivosConsignado}
+                    onChange={(files) => {
+                      setArquivosConsignado(files);
                       setResultado(null);
                       setSalvoAtual(null);
                     }}
                   />
-                  <UploadCard
+                  <UploadCardMultiplo
                     id="encargos-guia-fgts"
                     titulo="Guia FGTS + Consignado"
-                    descricao="PDF usado para conferir os totais"
-                    arquivo={arquivoGuiaFgts}
-                    linhas={0}
-                    carregando={false}
-                    accept=".pdf"
-                    onChange={(file) => {
-                      setArquivoGuiaFgts(file);
+                    descricao="Documentos usados para conferir os totais"
+                    arquivos={arquivosGuiaFgts}
+                    onChange={(files) => {
+                      setArquivosGuiaFgts(files);
                       setResultado(null);
                       setSalvoAtual(null);
                     }}
                   />
-                  <UploadCard
+                  <UploadCardMultiplo
                     id="encargos-darf"
                     titulo="DARF Previdência + IRRF"
-                    descricao="PDF com os códigos 1082, 1099, 0561 e 1708"
-                    arquivo={arquivoDarf}
-                    linhas={0}
-                    carregando={false}
-                    accept=".pdf"
-                    onChange={(file) => {
-                      setArquivoDarf(file);
+                    descricao="Documentos com os códigos 1082, 1099, 0561 e 1708"
+                    arquivos={arquivosDarf}
+                    onChange={(files) => {
+                      setArquivosDarf(files);
                       setResultado(null);
                       setSalvoAtual(null);
                     }}
@@ -628,11 +615,11 @@ function RateioFolhaPage() {
                   modo === "folha"
                     ? lendoLiquidos || !relatorio
                     : processandoEncargos ||
-                      !arquivoLiquidos ||
-                      !arquivoFgtsMensal ||
-                      !arquivoConsignado ||
-                      !arquivoGuiaFgts ||
-                      !arquivoDarf
+                      !arquivosLiquidosEncargos.length ||
+                      !arquivosFgtsMensal.length ||
+                      !arquivosConsignado.length ||
+                      !arquivosGuiaFgts.length ||
+                      !arquivosDarf.length
                 }
                 className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
               >
@@ -921,6 +908,62 @@ function UploadCard(props: {
         className="sr-only"
         onChange={(event) => props.onChange(event.target.files?.[0] ?? null)}
       />
+    </div>
+  );
+}
+
+function UploadCardMultiplo(props: {
+  id: string;
+  titulo: string;
+  descricao: string;
+  arquivos: File[];
+  onChange: (files: File[]) => void;
+}) {
+  function adicionar(files: File[]) {
+    const unicos = new Map(
+      [...props.arquivos, ...files].map((file) => [
+        [file.name, file.size, file.lastModified].join("-"),
+        file,
+      ]),
+    );
+    props.onChange(Array.from(unicos.values()));
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={props.id}>{props.titulo} *</Label>
+      <label
+        htmlFor={props.id}
+        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center transition-colors hover:border-gold/50 hover:bg-accent/30"
+      >
+        <FileSpreadsheet className="mb-2 h-6 w-6 text-gold" />
+        <span className="text-sm font-medium">
+          {props.arquivos.length
+            ? props.arquivos.length + (props.arquivos.length === 1 ? " documento selecionado" : " documentos selecionados")
+            : "Selecionar documentos"}
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          {props.arquivos.length
+            ? props.arquivos.map((arquivo) => arquivo.name).join(", ")
+            : props.descricao + " — Excel ou PDF"}
+        </span>
+      </label>
+      <Input
+        id={props.id}
+        type="file"
+        multiple
+        accept=".pdf,.xls,.xlsx,.csv"
+        className="sr-only"
+        onChange={(event) => {
+          adicionar(Array.from(event.target.files ?? []));
+          event.target.value = "";
+        }}
+      />
+      {props.arquivos.length > 0 && (
+        <Button type="button" size="sm" variant="ghost" onClick={() => props.onChange([])}>
+          Remover documentos
+        </Button>
+      )}
     </div>
   );
 }
