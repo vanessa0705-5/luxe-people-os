@@ -382,10 +382,98 @@ function RateioFolhaPage() {
                   </Button>
                 </div>
               </Card>
-              <RateioResultado resultado={resultado} />
+              <RateioResultado resultado={resultado} modo={modo} />
             </>
           )}
         </TabsContent>
+
+        <TabsContent value="liquidos" className="mt-5 space-y-5">
+          <Card className="border-border/60 p-5 shadow-elegant">
+            <h2 className="font-semibold">Relatório de Líquidos por serviço</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Importe o relatório da folha e veja apenas os totais por tomador e a quantidade de
+              colaboradores em cada um.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="arquivo-liquidos">Arquivo (.xls, .xlsx ou .csv)</Label>
+              <Input
+                id="arquivo-liquidos"
+                type="file"
+                accept=".xls,.xlsx,.csv"
+                onChange={(e) => selecionarLiquidos(e.target.files?.[0] ?? null)}
+              />
+              {lendoLiquidos && <p className="text-xs text-muted-foreground">Lendo arquivo...</p>}
+              {arquivoLiquidos && !lendoLiquidos && !relatorio && (
+                <p className="text-xs text-destructive">Nenhum tomador identificado neste arquivo.</p>
+              )}
+            </div>
+          </Card>
+
+          {relatorio && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  ["Competência", relatorio.competencia || "—"],
+                  ["Tomadores", relatorio.tomadores.length],
+                  ["Colaboradores", relatorio.totalColaboradores],
+                  ["Total líquido", formatarMoeda(relatorio.totalGeral)],
+                ].map(([label, value]) => (
+                  <Card key={String(label)} className="border-border/60 p-4 shadow-elegant">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+                    <p className="mt-2 text-xl font-semibold">{value}</p>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="overflow-hidden border-border/60 shadow-elegant">
+                <div className="border-b border-border bg-muted/35 px-5 py-4">
+                  <h3 className="font-semibold">Totais por tomador</h3>
+                  {relatorio.empresa && (
+                    <p className="text-xs text-muted-foreground">{relatorio.empresa}</p>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 font-medium">Tomador</th>
+                        <th className="px-3 py-3 font-medium">CNPJ</th>
+                        <th className="px-3 py-3 text-center font-medium">Colaboradores</th>
+                        <th className="px-5 py-3 text-right font-medium">Total líquido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {relatorio.tomadores.map((item) => (
+                        <tr
+                          key={item.cnpj + item.tomador}
+                          className="border-b border-border/60 last:border-0"
+                        >
+                          <td className="px-5 py-3 font-medium">{item.tomador}</td>
+                          <td className="px-3 py-3 text-muted-foreground">{item.cnpj}</td>
+                          <td className="px-3 py-3 text-center">{item.colaboradores}</td>
+                          <td className="px-5 py-3 text-right">{formatarMoeda(item.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30 font-semibold">
+                        <td className="px-5 py-3" colSpan={2}>
+                          Total
+                        </td>
+                        <td className="px-3 py-3 text-center">{relatorio.totalColaboradores}</td>
+                        <td className="px-5 py-3 text-right text-gold">
+                          {formatarMoeda(relatorio.totalGeral)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+
 
         <TabsContent value="historico" className="mt-5">
           <Card className="border-border/60 shadow-elegant">
