@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { onlyDigits } from "@/lib/br-format";
+import { VALIDADE_PADRAO_MESES, somarMeses } from "@/lib/aso-api";
 import type { ModuloImportacao, RegistroImportado } from "@/lib/importacao-config";
 
 export const EXTENSOES_ACEITAS = ".xlsx,.xls,.csv,.pdf";
