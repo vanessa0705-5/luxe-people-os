@@ -6,7 +6,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { SCHEMAS, montarPromptImportacao, type ModuloImportacao } from "@/lib/importacao-config";
 
 const InputSchema = z.object({
-  modulo: z.enum(["colaboradores", "empresas", "tomadores", "ferias"]),
+  modulo: z.enum(["colaboradores", "empresas", "tomadores", "ferias", "asos", "nrs"]),
   /** Linhas já lidas de uma planilha, serializadas em JSON. */
   linhas: z.string().optional(),
   /** Arquivo PDF em base64 (sem prefixo data:). */
