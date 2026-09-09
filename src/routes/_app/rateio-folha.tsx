@@ -422,10 +422,11 @@ function RateioFolhaPage() {
     setArquivoRateio(null);
     setArquivoLiquidos(null);
     setRelatorio(null);
-    setArquivoFgtsMensal(null);
-    setArquivoConsignado(null);
-    setArquivoGuiaFgts(null);
-    setArquivoDarf(null);
+    setArquivosLiquidosEncargos([]);
+    setArquivosFgtsMensal([]);
+    setArquivosConsignado([]);
+    setArquivosGuiaFgts([]);
+    setArquivosDarf([]);
     setProcessamentoEncargos(null);
     setFolha([]);
     setRateios([]);
