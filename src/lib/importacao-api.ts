@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { onlyDigits } from "@/lib/br-format";
+import { VALIDADE_PADRAO_MESES, somarMeses } from "@/lib/aso-api";
 import type { ModuloImportacao, RegistroImportado } from "@/lib/importacao-config";
 
 export const EXTENSOES_ACEITAS = ".xlsx,.xls,.csv,.pdf";
@@ -75,12 +76,31 @@ export async function gravarRegistros(
   const erros: ResultadoImportacao["erros"] = [];
   let inseridos = 0;
 
-  const colaboradores =
-    modulo === "ferias"
-      ? ((
-          await supabase.from("colaboradores").select("id, nome_completo, cpf, matricula")
-        ).data ?? [])
+  const precisaColaborador = modulo === "ferias" || modulo === "asos" || modulo === "nrs";
+  const colaboradores = precisaColaborador
+    ? ((
+        await supabase
+          .from("colaboradores")
+          .select("id, nome_completo, cpf, matricula, cargo, unidade, empresa_id")
+      ).data ?? [])
+    : [];
+
+  const catalogoNrs =
+    modulo === "nrs"
+      ? ((await supabase.from("nrs_catalogo").select("codigo, nome, validade_meses")).data ?? [])
       : [];
+
+  function acharColaborador(r: RegistroImportado) {
+    const cpf = onlyDigits(String(r.colaborador_cpf ?? ""));
+    const matricula = txt(r.colaborador_matricula)?.toLowerCase();
+    const nome = txt(r.colaborador_nome)?.toLowerCase();
+    return colaboradores.find(
+      (c) =>
+        (cpf && onlyDigits(c.cpf) === cpf) ||
+        (matricula && (c.matricula ?? "").toLowerCase() === matricula) ||
+        (nome && c.nome_completo.toLowerCase() === nome),
+    );
+  }
 
   for (let i = 0; i < registros.length; i++) {
     const r = registros[i];
@@ -160,19 +180,75 @@ export async function gravarRegistros(
           empresa_id: opcoes?.empresaId ?? null,
         });
         if (error) throw error;
+      } else if (modulo === "asos") {
+        const dataExame = data(r.data_exame);
+        if (!dataExame) throw new Error("Data do exame é obrigatória.");
+        const colaborador = acharColaborador(r);
+        if (!colaborador) throw new Error("Colaborador não encontrado no cadastro.");
+        const tipo =
+          opcao(r.tipo_exame, [
+            "admissional",
+            "periodico",
+            "retorno_trabalho",
+            "mudanca_risco",
+            "demissional",
+          ] as const) ?? "periodico";
+        const meses = num(r.validade_meses);
+        const vencimento =
+          data(r.data_vencimento) ??
+          (tipo === "demissional"
+            ? null
+            : somarMeses(dataExame, meses && meses > 0 ? meses : VALIDADE_PADRAO_MESES));
+        const { error } = await supabase.from("asos").insert({
+          colaborador_id: colaborador.id,
+          empresa_id: opcoes?.empresaId ?? colaborador.empresa_id ?? null,
+          tipo_exame: tipo,
+          data_exame: dataExame,
+          data_vencimento: vencimento || null,
+          resultado: opcao(r.resultado, ["apto", "inapto", "apto_com_restricao"] as const),
+          clinica: txt(r.clinica),
+          medico_responsavel: txt(r.medico_responsavel),
+          crm: txt(r.crm),
+          cargo: txt(r.cargo) ?? colaborador.cargo,
+          unidade: txt(r.unidade) ?? colaborador.unidade,
+          matricula: colaborador.matricula,
+          cpf: colaborador.cpf,
+          observacoes: txt(r.observacoes),
+        });
+        if (error) throw error;
+      } else if (modulo === "nrs") {
+        const realizacao = data(r.data_realizacao);
+        if (!realizacao) throw new Error("Data de realização é obrigatória.");
+        const colaborador = acharColaborador(r);
+        if (!colaborador) throw new Error("Colaborador não encontrado no cadastro.");
+        const codigoBruto = (txt(r.nr_codigo) ?? "").toUpperCase().replace(/\s/g, "");
+        const digitos = onlyDigits(codigoBruto);
+        const codigo = digitos ? `NR-${digitos.padStart(2, "0")}` : "";
+        if (!codigo) throw new Error("Não foi possível identificar a NR do treinamento.");
+        const doCatalogo = catalogoNrs.find((n) => n.codigo === codigo);
+        const meses = num(r.validade_meses) ?? doCatalogo?.validade_meses ?? null;
+        const validade =
+          data(r.data_validade) ??
+          (meses && meses > 0 ? somarMeses(realizacao, meses) : null);
+        const { error } = await supabase.from("nr_treinamentos").insert({
+          colaborador_id: colaborador.id,
+          empresa_id: opcoes?.empresaId ?? colaborador.empresa_id ?? null,
+          nr_codigo: codigo,
+          nome_treinamento: txt(r.nome_treinamento) ?? doCatalogo?.nome ?? codigo,
+          data_realizacao: realizacao,
+          data_validade: validade || null,
+          carga_horaria: num(r.carga_horaria),
+          instrutor: txt(r.instrutor),
+          cargo: txt(r.cargo) ?? colaborador.cargo,
+          unidade: txt(r.unidade) ?? colaborador.unidade,
+          observacoes: txt(r.observacoes),
+        });
+        if (error) throw error;
       } else {
         const inicio = data(r.data_inicio);
         const fim = data(r.data_fim);
         if (!inicio || !fim) throw new Error("Datas de início e término são obrigatórias.");
-        const cpf = onlyDigits(String(r.colaborador_cpf ?? ""));
-        const matricula = txt(r.colaborador_matricula)?.toLowerCase();
-        const nome = txt(r.colaborador_nome)?.toLowerCase();
-        const colaborador = colaboradores.find(
-          (c) =>
-            (cpf && onlyDigits(c.cpf) === cpf) ||
-            (matricula && (c.matricula ?? "").toLowerCase() === matricula) ||
-            (nome && c.nome_completo.toLowerCase() === nome),
-        );
+        const colaborador = acharColaborador(r);
         if (!colaborador) throw new Error("Colaborador não encontrado no cadastro.");
         const dias =
           Math.round(

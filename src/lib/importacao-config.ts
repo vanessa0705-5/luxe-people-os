@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 /** Módulos que aceitam importação por planilha ou PDF. */
-export type ModuloImportacao = "colaboradores" | "empresas" | "tomadores" | "ferias";
+export type ModuloImportacao =
+  | "colaboradores"
+  | "empresas"
+  | "tomadores"
+  | "ferias"
+  | "asos"
+  | "nrs";
 
 const texto = z.string().nullable();
 const numero = z.number().nullable();
@@ -71,17 +77,54 @@ export const SCHEMA_FERIAS = z.object({
   observacoes: texto,
 });
 
+export const SCHEMA_ASO = z.object({
+  colaborador_nome: texto,
+  colaborador_cpf: texto,
+  colaborador_matricula: texto,
+  tipo_exame: texto,
+  data_exame: texto,
+  data_vencimento: texto,
+  validade_meses: numero,
+  resultado: texto,
+  clinica: texto,
+  medico_responsavel: texto,
+  crm: texto,
+  cargo: texto,
+  unidade: texto,
+  observacoes: texto,
+});
+
+export const SCHEMA_NR = z.object({
+  colaborador_nome: texto,
+  colaborador_cpf: texto,
+  colaborador_matricula: texto,
+  nr_codigo: texto,
+  nome_treinamento: texto,
+  data_realizacao: texto,
+  data_validade: texto,
+  validade_meses: numero,
+  carga_horaria: numero,
+  instrutor: texto,
+  cargo: texto,
+  unidade: texto,
+  observacoes: texto,
+});
+
 export const SCHEMAS = {
   colaboradores: SCHEMA_COLABORADOR,
   empresas: SCHEMA_EMPRESA,
   tomadores: SCHEMA_TOMADOR,
   ferias: SCHEMA_FERIAS,
+  asos: SCHEMA_ASO,
+  nrs: SCHEMA_NR,
 } as const;
 
 export type RegistroColaborador = z.infer<typeof SCHEMA_COLABORADOR>;
 export type RegistroEmpresa = z.infer<typeof SCHEMA_EMPRESA>;
 export type RegistroTomador = z.infer<typeof SCHEMA_TOMADOR>;
 export type RegistroFerias = z.infer<typeof SCHEMA_FERIAS>;
+export type RegistroAso = z.infer<typeof SCHEMA_ASO>;
+export type RegistroNr = z.infer<typeof SCHEMA_NR>;
 export type RegistroImportado = Record<string, string | number | null>;
 
 interface ModuloConfig {
@@ -156,6 +199,42 @@ export const MODULOS_IMPORTACAO: Record<ModuloImportacao, ModuloConfig> = {
     ],
     obrigatorios: ["data_inicio", "data_fim"],
     instrucoes: "",
+  },
+  asos: {
+    label: "ASO",
+    descricao:
+      "Leia o Atestado de Saúde Ocupacional em PDF (ou uma planilha) para preencher os dados e o vencimento automaticamente.",
+    colunas: [
+      { campo: "colaborador_nome", label: "Colaborador" },
+      { campo: "colaborador_cpf", label: "CPF" },
+      { campo: "tipo_exame", label: "Tipo de exame" },
+      { campo: "data_exame", label: "Data do exame" },
+      { campo: "data_vencimento", label: "Vencimento" },
+      { campo: "resultado", label: "Resultado" },
+      { campo: "clinica", label: "Clínica" },
+      { campo: "medico_responsavel", label: "Médico" },
+    ],
+    obrigatorios: ["data_exame"],
+    instrucoes:
+      "Tipo de exame deve usar exatamente: admissional, periodico, retorno_trabalho, mudanca_risco, demissional. Resultado deve usar: apto, inapto, apto_com_restricao. Extraia data_vencimento (validade do exame) sempre que o documento indicar vencimento, validade, próximo exame ou data do próximo periódico; se o documento informar apenas o prazo em meses, preencha validade_meses.",
+  },
+  nrs: {
+    label: "Treinamentos de NR",
+    descricao:
+      "Leia certificados de treinamento de NR em PDF (ou uma planilha) para preencher os dados e a validade automaticamente.",
+    colunas: [
+      { campo: "colaborador_nome", label: "Colaborador" },
+      { campo: "colaborador_cpf", label: "CPF" },
+      { campo: "nr_codigo", label: "NR" },
+      { campo: "nome_treinamento", label: "Treinamento" },
+      { campo: "data_realizacao", label: "Realização" },
+      { campo: "data_validade", label: "Validade" },
+      { campo: "carga_horaria", label: "Carga horária" },
+      { campo: "instrutor", label: "Instrutor" },
+    ],
+    obrigatorios: ["data_realizacao"],
+    instrucoes:
+      "nr_codigo deve ser o código da norma no formato NR-XX (ex.: NR-35). Extraia data_validade sempre que o certificado indicar validade, vencimento ou reciclagem; se informar apenas o prazo em meses ou anos, preencha validade_meses (anos x 12).",
   },
 };
 

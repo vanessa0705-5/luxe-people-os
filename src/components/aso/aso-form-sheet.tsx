@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, ScanLine } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,6 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { listColaboradores } from "@/lib/colaboradores-api";
+import { arquivoParaBase64 } from "@/lib/importacao-api";
+import { extrairRegistrosImportacao } from "@/lib/importacao.functions";
+import { onlyDigits } from "@/lib/br-format";
 import { listEmpresasPaged } from "@/lib/empresas-api";
 import {
   RESULTADO_LABELS,
@@ -79,6 +83,8 @@ export function AsoFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [lendoArquivo, setLendoArquivo] = useState(false);
+  const extrair = useServerFn(extrairRegistrosImportacao);
 
   const { data: colaboradores = [] } = useQuery({
     queryKey: ["colaboradores", "select-aso"],
@@ -141,6 +147,77 @@ export function AsoFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }
         : { ...f, data_vencimento: somarMeses(f.data_exame, VALIDADE_PADRAO_MESES) },
     );
   }, [open, form.data_exame, form.tipo_exame]);
+
+  /** Lê o ASO anexado com IA e preenche os campos, inclusive o vencimento. */
+  async function lerDocumento(file: File) {
+    setLendoArquivo(true);
+    try {
+      const resultado = await extrair({
+        data: {
+          modulo: "asos",
+          arquivo: {
+            nome: file.name,
+            mime: file.type || "application/pdf",
+            base64: await arquivoParaBase64(file),
+          },
+        },
+      });
+      const r = (resultado.registros ?? [])[0] as Record<string, unknown> | undefined;
+      if (!r) {
+        toast.error("Não foi possível identificar os dados do ASO no documento.");
+        return;
+      }
+      const str = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
+      const cpfDoc = onlyDigits(str(r.colaborador_cpf));
+      const nomeDoc = str(r.colaborador_nome).toLowerCase();
+      const encontrado = colaboradores.find(
+        (c) =>
+          (cpfDoc && onlyDigits(c.cpf) === cpfDoc) ||
+          (nomeDoc && c.nome_completo.toLowerCase() === nomeDoc),
+      );
+      const tipos = ["admissional", "periodico", "retorno_trabalho", "mudanca_risco", "demissional"];
+      const tipoDoc = str(r.tipo_exame).toLowerCase();
+      const resultados = ["apto", "inapto", "apto_com_restricao"];
+      const resultadoDoc = str(r.resultado).toLowerCase();
+      const exame = str(r.data_exame).slice(0, 10);
+      const mesesDoc = Number(r.validade_meses);
+      const vencimentoDoc = str(r.data_vencimento).slice(0, 10);
+
+      setForm((f) => {
+        const tipo = (tipos.includes(tipoDoc) ? tipoDoc : f.tipo_exame) as TipoExameAso;
+        const dataExame = exame || f.data_exame;
+        let vencimento = vencimentoDoc || "";
+        if (!vencimento && dataExame && tipo !== "demissional") {
+          const meses = Number.isFinite(mesesDoc) && mesesDoc > 0 ? mesesDoc : VALIDADE_PADRAO_MESES;
+          vencimento = somarMeses(dataExame, meses);
+        }
+        return {
+          ...f,
+          colaborador_id: colaboradorIdFixo ?? encontrado?.id ?? f.colaborador_id,
+          tipo_exame: tipo,
+          data_exame: dataExame,
+          data_vencimento: vencimento || f.data_vencimento,
+          resultado: (resultados.includes(resultadoDoc)
+            ? resultadoDoc
+            : f.resultado) as ResultadoAso | "",
+          clinica: str(r.clinica) || f.clinica,
+          medico_responsavel: str(r.medico_responsavel) || f.medico_responsavel,
+          crm: str(r.crm) || f.crm,
+          cargo: str(r.cargo) || f.cargo,
+          unidade: str(r.unidade) || f.unidade,
+        };
+      });
+      if (cpfDoc && !encontrado) {
+        toast.warning("Dados lidos. Selecione o colaborador manualmente: não localizamos o CPF.");
+      } else {
+        toast.success("Documento lido. Confira os dados e o vencimento antes de salvar.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao ler o documento.");
+    } finally {
+      setLendoArquivo(false);
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -218,8 +295,36 @@ export function AsoFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }
               type="file"
               accept="application/pdf,image/*"
               aria-invalid={!!errors.arquivo}
-              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setArquivo(file);
+                if (file) void lerDocumento(file);
+              }}
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Ao anexar, o documento é lido automaticamente e os campos, incluindo o vencimento, são
+              preenchidos para sua conferência.
+            </p>
+            {arquivo && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={lendoArquivo}
+                onClick={() => void lerDocumento(arquivo)}
+              >
+                {lendoArquivo ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Lendo documento...
+                  </>
+                ) : (
+                  <>
+                    <ScanLine className="mr-2 h-4 w-4" /> Ler documento novamente
+                  </>
+                )}
+              </Button>
+            )}
             {errors.arquivo ? (
               <p className="text-xs text-destructive">{errors.arquivo}</p>
             ) : arquivo ? (
