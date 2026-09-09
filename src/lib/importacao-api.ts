@@ -75,12 +75,31 @@ export async function gravarRegistros(
   const erros: ResultadoImportacao["erros"] = [];
   let inseridos = 0;
 
-  const colaboradores =
-    modulo === "ferias"
-      ? ((
-          await supabase.from("colaboradores").select("id, nome_completo, cpf, matricula")
-        ).data ?? [])
+  const precisaColaborador = modulo === "ferias" || modulo === "asos" || modulo === "nrs";
+  const colaboradores = precisaColaborador
+    ? ((
+        await supabase
+          .from("colaboradores")
+          .select("id, nome_completo, cpf, matricula, cargo, unidade, empresa_id")
+      ).data ?? [])
+    : [];
+
+  const catalogoNrs =
+    modulo === "nrs"
+      ? ((await supabase.from("nrs_catalogo").select("codigo, nome, validade_meses")).data ?? [])
       : [];
+
+  function acharColaborador(r: RegistroImportado) {
+    const cpf = onlyDigits(String(r.colaborador_cpf ?? ""));
+    const matricula = txt(r.colaborador_matricula)?.toLowerCase();
+    const nome = txt(r.colaborador_nome)?.toLowerCase();
+    return colaboradores.find(
+      (c) =>
+        (cpf && onlyDigits(c.cpf) === cpf) ||
+        (matricula && (c.matricula ?? "").toLowerCase() === matricula) ||
+        (nome && c.nome_completo.toLowerCase() === nome),
+    );
+  }
 
   for (let i = 0; i < registros.length; i++) {
     const r = registros[i];
