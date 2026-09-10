@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, ScanLine } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,6 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { listColaboradores } from "@/lib/colaboradores-api";
+import { arquivoParaBase64 } from "@/lib/importacao-api";
+import { extrairRegistrosImportacao } from "@/lib/importacao.functions";
+import { onlyDigits } from "@/lib/br-format";
 import { listEmpresasPaged } from "@/lib/empresas-api";
 import {
   createTreinamento,
@@ -71,6 +75,8 @@ export function NrFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }:
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [lendoArquivo, setLendoArquivo] = useState(false);
+  const extrair = useServerFn(extrairRegistrosImportacao);
 
   const { data: colaboradores = [] } = useQuery({
     queryKey: ["colaboradores", "select-nr"],
@@ -144,6 +150,76 @@ export function NrFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }:
           : somarMeses(f.data_realizacao, nrSelecionada.validade_meses),
     }));
   }, [open, nrSelecionada, form.data_realizacao]);
+
+  /** Lê o certificado anexado com IA e preenche os campos, inclusive a validade. */
+  async function lerDocumento(file: File) {
+    setLendoArquivo(true);
+    try {
+      const resultado = await extrair({
+        data: {
+          modulo: "nrs",
+          arquivo: {
+            nome: file.name,
+            mime: file.type || "application/pdf",
+            base64: await arquivoParaBase64(file),
+          },
+        },
+      });
+      const r = (resultado.registros ?? [])[0] as Record<string, unknown> | undefined;
+      if (!r) {
+        toast.error("Não foi possível identificar os dados do treinamento no documento.");
+        return;
+      }
+      const str = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
+      const cpfDoc = onlyDigits(str(r.colaborador_cpf));
+      const nomeDoc = str(r.colaborador_nome).toLowerCase();
+      const encontrado = colaboradores.find(
+        (c) =>
+          (cpfDoc && onlyDigits(c.cpf) === cpfDoc) ||
+          (nomeDoc && c.nome_completo.toLowerCase() === nomeDoc),
+      );
+      const digitos = onlyDigits(str(r.nr_codigo));
+      const codigo = digitos ? `NR-${digitos.padStart(2, "0")}` : "";
+      const doCatalogo = catalogo.find((n) => n.codigo === codigo) ?? null;
+      const realizacao = str(r.data_realizacao).slice(0, 10);
+      const validadeDoc = str(r.data_validade).slice(0, 10);
+      const mesesDoc = Number(r.validade_meses);
+      const meses = Number.isFinite(mesesDoc) && mesesDoc > 0
+        ? mesesDoc
+        : (doCatalogo?.validade_meses ?? 0);
+      const cargaDoc = Number(r.carga_horaria);
+
+      setForm((f) => {
+        const dataRealizacao = realizacao || f.data_realizacao;
+        let validade = validadeDoc || "";
+        if (!validade && dataRealizacao && meses > 0) validade = somarMeses(dataRealizacao, meses);
+        return {
+          ...f,
+          colaborador_id: colaboradorIdFixo ?? encontrado?.id ?? f.colaborador_id,
+          nr_codigo: doCatalogo?.codigo ?? f.nr_codigo,
+          nome_treinamento: str(r.nome_treinamento) || doCatalogo?.nome || f.nome_treinamento,
+          data_realizacao: dataRealizacao,
+          data_validade: validade || f.data_validade,
+          carga_horaria:
+            Number.isFinite(cargaDoc) && cargaDoc > 0 ? String(cargaDoc) : f.carga_horaria,
+          instrutor: str(r.instrutor) || f.instrutor,
+          cargo: str(r.cargo) || f.cargo,
+          unidade: str(r.unidade) || f.unidade,
+        };
+      });
+      if (codigo && !doCatalogo) {
+        toast.warning(`Dados lidos. A norma ${codigo} não está no catálogo: selecione a NR.`);
+      } else if (cpfDoc && !encontrado) {
+        toast.warning("Dados lidos. Selecione o colaborador manualmente: não localizamos o CPF.");
+      } else {
+        toast.success("Certificado lido. Confira os dados e a validade antes de salvar.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao ler o documento.");
+    } finally {
+      setLendoArquivo(false);
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -224,8 +300,36 @@ export function NrFormSheet({ open, onOpenChange, registro, colaboradorIdFixo }:
               type="file"
               accept="application/pdf,image/*"
               aria-invalid={!!errors.arquivo}
-              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setArquivo(file);
+                if (file) void lerDocumento(file);
+              }}
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Ao anexar, o certificado é lido automaticamente e os campos, incluindo a validade, são
+              preenchidos para sua conferência.
+            </p>
+            {arquivo && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={lendoArquivo}
+                onClick={() => void lerDocumento(arquivo)}
+              >
+                {lendoArquivo ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Lendo certificado...
+                  </>
+                ) : (
+                  <>
+                    <ScanLine className="mr-2 h-4 w-4" /> Ler certificado novamente
+                  </>
+                )}
+              </Button>
+            )}
             {errors.arquivo ? (
               <p className="text-xs text-destructive">{errors.arquivo}</p>
             ) : arquivo ? (

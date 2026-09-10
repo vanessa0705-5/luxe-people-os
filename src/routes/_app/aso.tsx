@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AsoFormSheet } from "@/components/aso/aso-form-sheet";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
 import { useAuth } from "@/lib/auth-context";
 import {
   RESULTADO_LABELS,
@@ -112,6 +114,7 @@ function AsoPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [registro, setRegistro] = useState<AsoComRelacoes | null>(null);
   const [paraExcluir, setParaExcluir] = useState<AsoComRelacoes | null>(null);
+  const [importarOpen, setImportarOpen] = useState(false);
 
   const filtros = { search, tipoExame, resultado, situacao, unidade, page, pageSize: PAGE_SIZE };
 
@@ -168,15 +171,20 @@ function AsoPage() {
       icon={<HeartPulse className="h-5 w-5 text-gold-foreground" />}
       actions={
         canManageSst ? (
-          <Button
-            className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
-            onClick={() => {
-              setRegistro(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-1 h-4 w-4" /> Novo ASO
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setImportarOpen(true)}>
+              <Upload className="mr-1 h-4 w-4" /> Ler documento
+            </Button>
+            <Button
+              className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
+              onClick={() => {
+                setRegistro(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Novo ASO
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -387,6 +395,13 @@ function AsoPage() {
           </div>
         </div>
       )}
+
+      <ImportacaoDialog
+        open={importarOpen}
+        onOpenChange={setImportarOpen}
+        modulo="asos"
+        invalidateKeys={["asos"]}
+      />
 
       <AsoFormSheet open={formOpen} onOpenChange={setFormOpen} registro={registro} />
 

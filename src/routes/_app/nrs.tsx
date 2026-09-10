@@ -2,7 +2,16 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, MoreHorizontal, Pencil, Plus, Search, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  Download,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +46,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { NrFormSheet } from "@/components/nrs/nr-form-sheet";
+import { ImportacaoDialog } from "@/components/importacao/importacao-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { formatarData, getUrlDocumentoSst } from "@/lib/aso-api";
 import {
@@ -96,6 +106,7 @@ function NrsPage() {
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [registro, setRegistro] = useState<NrTreinamentoComRelacoes | null>(null);
+  const [importarOpen, setImportarOpen] = useState(false);
   const [paraExcluir, setParaExcluir] = useState<NrTreinamentoComRelacoes | null>(null);
 
   const filtros = { search, nrCodigo, situacao, unidade, page, pageSize: PAGE_SIZE };
@@ -150,15 +161,20 @@ function NrsPage() {
       icon={<ShieldCheck className="h-5 w-5 text-gold-foreground" />}
       actions={
         canManageSst ? (
-          <Button
-            className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
-            onClick={() => {
-              setRegistro(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="mr-1 h-4 w-4" /> Novo treinamento
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setImportarOpen(true)}>
+              <Upload className="mr-1 h-4 w-4" /> Ler documento
+            </Button>
+            <Button
+              className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
+              onClick={() => {
+                setRegistro(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Novo treinamento
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -358,6 +374,13 @@ function NrsPage() {
           </div>
         </div>
       )}
+
+      <ImportacaoDialog
+        open={importarOpen}
+        onOpenChange={setImportarOpen}
+        modulo="nrs"
+        invalidateKeys={["nr-treinamentos"]}
+      />
 
       <NrFormSheet open={formOpen} onOpenChange={setFormOpen} registro={registro} />
 
