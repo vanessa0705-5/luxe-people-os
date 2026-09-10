@@ -106,6 +106,7 @@ function NrsPage() {
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [registro, setRegistro] = useState<NrTreinamentoComRelacoes | null>(null);
+  const [importarOpen, setImportarOpen] = useState(false);
   const [paraExcluir, setParaExcluir] = useState<NrTreinamentoComRelacoes | null>(null);
 
   const filtros = { search, nrCodigo, situacao, unidade, page, pageSize: PAGE_SIZE };
