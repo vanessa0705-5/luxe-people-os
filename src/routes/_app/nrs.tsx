@@ -379,7 +379,7 @@ function NrsPage() {
         open={importarOpen}
         onOpenChange={setImportarOpen}
         modulo="nrs"
-        invalidateKeys={["nr_treinamentos", "nrs"]}
+        invalidateKeys={["nr-treinamentos"]}
       />
 
       <NrFormSheet open={formOpen} onOpenChange={setFormOpen} registro={registro} />
