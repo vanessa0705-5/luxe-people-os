@@ -14,6 +14,366 @@ export type Database = {
   }
   public: {
     Tables: {
+      admissao_contrato: {
+        Row: {
+          aceito_em: string | null
+          admissao_id: string
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          assinatura_nome: string | null
+          created_at: string
+          enviado_em: string | null
+          id: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          aceito_em?: string | null
+          admissao_id: string
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aceito_em?: string | null
+          admissao_id?: string
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissao_contrato_admissao_id_fkey"
+            columns: ["admissao_id"]
+            isOneToOne: true
+            referencedRelation: "admissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admissao_documentos: {
+        Row: {
+          admissao_id: string
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          codigo: string
+          created_at: string
+          enviado_em: string | null
+          id: string
+          nome: string
+          obrigatorio: boolean
+          observacao: string | null
+          ordem: number
+          status: Database["public"]["Enums"]["status_documento_admissao"]
+          updated_at: string
+          validado_em: string | null
+          validado_por: string | null
+        }
+        Insert: {
+          admissao_id: string
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          codigo: string
+          created_at?: string
+          enviado_em?: string | null
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          status?: Database["public"]["Enums"]["status_documento_admissao"]
+          updated_at?: string
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Update: {
+          admissao_id?: string
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          codigo?: string
+          created_at?: string
+          enviado_em?: string | null
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          status?: Database["public"]["Enums"]["status_documento_admissao"]
+          updated_at?: string
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissao_documentos_admissao_id_fkey"
+            columns: ["admissao_id"]
+            isOneToOne: false
+            referencedRelation: "admissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admissao_documentos_catalogo: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          is_active: boolean
+          nome: string
+          obrigatorio: boolean
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nome: string
+          obrigatorio?: boolean
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nome?: string
+          obrigatorio?: boolean
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admissao_transporte: {
+        Row: {
+          admissao_id: string
+          cnh_numero: string | null
+          confirmado_em: string | null
+          created_at: string
+          id: string
+          linhas: string | null
+          modalidade: Database["public"]["Enums"]["modalidade_transporte"]
+          observacoes: string | null
+          placa_veiculo: string | null
+          updated_at: string
+          valor_diario: number | null
+        }
+        Insert: {
+          admissao_id: string
+          cnh_numero?: string | null
+          confirmado_em?: string | null
+          created_at?: string
+          id?: string
+          linhas?: string | null
+          modalidade?: Database["public"]["Enums"]["modalidade_transporte"]
+          observacoes?: string | null
+          placa_veiculo?: string | null
+          updated_at?: string
+          valor_diario?: number | null
+        }
+        Update: {
+          admissao_id?: string
+          cnh_numero?: string | null
+          confirmado_em?: string | null
+          created_at?: string
+          id?: string
+          linhas?: string | null
+          modalidade?: Database["public"]["Enums"]["modalidade_transporte"]
+          observacoes?: string | null
+          placa_veiculo?: string | null
+          updated_at?: string
+          valor_diario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissao_transporte_admissao_id_fkey"
+            columns: ["admissao_id"]
+            isOneToOne: true
+            referencedRelation: "admissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admissao_treinamentos: {
+        Row: {
+          admissao_id: string
+          carga_horaria: number | null
+          certificado_nome: string | null
+          certificado_path: string | null
+          concluido_em: string | null
+          created_at: string
+          id: string
+          instrutor: string | null
+          nome: string
+          nr_codigo: string
+          obrigatorio: boolean
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          admissao_id: string
+          carga_horaria?: number | null
+          certificado_nome?: string | null
+          certificado_path?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          instrutor?: string | null
+          nome: string
+          nr_codigo: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admissao_id?: string
+          carga_horaria?: number | null
+          certificado_nome?: string | null
+          certificado_path?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          instrutor?: string | null
+          nome?: string
+          nr_codigo?: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissao_treinamentos_admissao_id_fkey"
+            columns: ["admissao_id"]
+            isOneToOne: false
+            referencedRelation: "admissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admissoes: {
+        Row: {
+          cancelada_em: string | null
+          cargo: string | null
+          colaborador_id: string | null
+          concluida_em: string | null
+          cpf: string
+          created_at: string
+          created_by: string | null
+          data_prevista: string | null
+          email: string | null
+          empresa_id: string | null
+          etapa: Database["public"]["Enums"]["etapa_admissao"]
+          id: string
+          jornada_semanal: number | null
+          link_enviado_em: string | null
+          motivo_cancelamento: string | null
+          nome_completo: string
+          observacoes: string | null
+          progresso: number
+          salario: number | null
+          status: Database["public"]["Enums"]["status_admissao"]
+          telefone: string | null
+          tipo_contrato: Database["public"]["Enums"]["tipo_contrato"] | null
+          token: string
+          tomador_id: string | null
+          unidade: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancelada_em?: string | null
+          cargo?: string | null
+          colaborador_id?: string | null
+          concluida_em?: string | null
+          cpf: string
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_admissao"]
+          id?: string
+          jornada_semanal?: number | null
+          link_enviado_em?: string | null
+          motivo_cancelamento?: string | null
+          nome_completo: string
+          observacoes?: string | null
+          progresso?: number
+          salario?: number | null
+          status?: Database["public"]["Enums"]["status_admissao"]
+          telefone?: string | null
+          tipo_contrato?: Database["public"]["Enums"]["tipo_contrato"] | null
+          token: string
+          tomador_id?: string | null
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancelada_em?: string | null
+          cargo?: string | null
+          colaborador_id?: string | null
+          concluida_em?: string | null
+          cpf?: string
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_admissao"]
+          id?: string
+          jornada_semanal?: number | null
+          link_enviado_em?: string | null
+          motivo_cancelamento?: string | null
+          nome_completo?: string
+          observacoes?: string | null
+          progresso?: number
+          salario?: number | null
+          status?: Database["public"]["Enums"]["status_admissao"]
+          telefone?: string | null
+          tipo_contrato?: Database["public"]["Enums"]["tipo_contrato"] | null
+          token?: string
+          tomador_id?: string | null
+          unidade?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admissoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admissoes_tomador_id_fkey"
+            columns: ["tomador_id"]
+            isOneToOne: false
+            referencedRelation: "tomadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aso_historico: {
         Row: {
           acao: string
@@ -977,9 +1337,30 @@ export type Database = {
         | "divorciado"
         | "viuvo"
         | "uniao_estavel"
+      etapa_admissao:
+        | "documentos"
+        | "transporte"
+        | "treinamentos"
+        | "contrato"
+        | "concluida"
+      modalidade_transporte: "vt" | "vc" | "proprio" | "nenhum"
       resultado_aso: "apto" | "inapto" | "apto_com_restricao"
       sexo: "masculino" | "feminino" | "outro"
+      status_admissao:
+        | "aguardando_documentos"
+        | "documentos_em_validacao"
+        | "transporte_pendente"
+        | "treinamentos_pendentes"
+        | "contrato_pendente"
+        | "concluida"
+        | "cancelada"
       status_colaborador: "ativo" | "afastado" | "ferias" | "desligado"
+      status_documento_admissao:
+        | "pendente"
+        | "enviado"
+        | "em_validacao"
+        | "aprovado"
+        | "reprovado"
       status_empresa: "ativa" | "inativa"
       status_ferias:
         | "solicitada"
@@ -1146,9 +1527,33 @@ export const Constants = {
         "viuvo",
         "uniao_estavel",
       ],
+      etapa_admissao: [
+        "documentos",
+        "transporte",
+        "treinamentos",
+        "contrato",
+        "concluida",
+      ],
+      modalidade_transporte: ["vt", "vc", "proprio", "nenhum"],
       resultado_aso: ["apto", "inapto", "apto_com_restricao"],
       sexo: ["masculino", "feminino", "outro"],
+      status_admissao: [
+        "aguardando_documentos",
+        "documentos_em_validacao",
+        "transporte_pendente",
+        "treinamentos_pendentes",
+        "contrato_pendente",
+        "concluida",
+        "cancelada",
+      ],
       status_colaborador: ["ativo", "afastado", "ferias", "desligado"],
+      status_documento_admissao: [
+        "pendente",
+        "enviado",
+        "em_validacao",
+        "aprovado",
+        "reprovado",
+      ],
       status_empresa: ["ativa", "inativa"],
       status_ferias: [
         "solicitada",
