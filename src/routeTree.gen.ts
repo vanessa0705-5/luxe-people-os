@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdmissaoTokenRouteImport } from './routes/admissao.$token'
 import { Route as AppTomadoresRouteImport } from './routes/_app/tomadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppRateioFolhaRouteImport } from './routes/_app/rateio-folha'
@@ -27,6 +28,7 @@ import { Route as AppCoordenadoresRouteImport } from './routes/_app/coordenadore
 import { Route as AppColaboradoresRouteImport } from './routes/_app/colaboradores'
 import { Route as AppAuditoriaRouteImport } from './routes/_app/auditoria'
 import { Route as AppAsoRouteImport } from './routes/_app/aso'
+import { Route as AppAdmissaoDigitalRouteImport } from './routes/_app/admissao-digital'
 import { Route as AppAdministracaoRouteImport } from './routes/_app/administracao'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app/colaboradores.$id'
 
@@ -42,6 +44,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdmissaoTokenRoute = AdmissaoTokenRouteImport.update({
+  id: '/admissao/$token',
+  path: '/admissao/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppTomadoresRoute = AppTomadoresRouteImport.update({
@@ -119,6 +126,11 @@ const AppAsoRoute = AppAsoRouteImport.update({
   path: '/aso',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdmissaoDigitalRoute = AppAdmissaoDigitalRouteImport.update({
+  id: '/admissao-digital',
+  path: '/admissao-digital',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdministracaoRoute = AppAdministracaoRouteImport.update({
   id: '/administracao',
   path: '/administracao',
@@ -134,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/admissao-digital': typeof AppAdmissaoDigitalRoute
   '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -149,12 +162,14 @@ export interface FileRoutesByFullPath {
   '/rateio-folha': typeof AppRateioFolhaRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
+  '/admissao/$token': typeof AdmissaoTokenRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/administracao': typeof AppAdministracaoRoute
+  '/admissao-digital': typeof AppAdmissaoDigitalRoute
   '/aso': typeof AppAsoRoute
   '/auditoria': typeof AppAuditoriaRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -170,6 +185,7 @@ export interface FileRoutesByTo {
   '/rateio-folha': typeof AppRateioFolhaRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tomadores': typeof AppTomadoresRoute
+  '/admissao/$token': typeof AdmissaoTokenRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesById {
@@ -178,6 +194,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/_app/administracao': typeof AppAdministracaoRoute
+  '/_app/admissao-digital': typeof AppAdmissaoDigitalRoute
   '/_app/aso': typeof AppAsoRoute
   '/_app/auditoria': typeof AppAuditoriaRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -193,6 +210,7 @@ export interface FileRoutesById {
   '/_app/rateio-folha': typeof AppRateioFolhaRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tomadores': typeof AppTomadoresRoute
+  '/admissao/$token': typeof AdmissaoTokenRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRouteTypes {
@@ -201,6 +219,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/administracao'
+    | '/admissao-digital'
     | '/aso'
     | '/auditoria'
     | '/colaboradores'
@@ -216,12 +235,14 @@ export interface FileRouteTypes {
     | '/rateio-folha'
     | '/relatorios'
     | '/tomadores'
+    | '/admissao/$token'
     | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/administracao'
+    | '/admissao-digital'
     | '/aso'
     | '/auditoria'
     | '/colaboradores'
@@ -237,6 +258,7 @@ export interface FileRouteTypes {
     | '/rateio-folha'
     | '/relatorios'
     | '/tomadores'
+    | '/admissao/$token'
     | '/colaboradores/$id'
   id:
     | '__root__'
@@ -244,6 +266,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/_app/administracao'
+    | '/_app/admissao-digital'
     | '/_app/aso'
     | '/_app/auditoria'
     | '/_app/colaboradores'
@@ -259,6 +282,7 @@ export interface FileRouteTypes {
     | '/_app/rateio-folha'
     | '/_app/relatorios'
     | '/_app/tomadores'
+    | '/admissao/$token'
     | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
 }
@@ -266,6 +290,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AdmissaoTokenRoute: typeof AdmissaoTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -289,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admissao/$token': {
+      id: '/admissao/$token'
+      path: '/admissao/$token'
+      fullPath: '/admissao/$token'
+      preLoaderRoute: typeof AdmissaoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/tomadores': {
@@ -396,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAsoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admissao-digital': {
+      id: '/_app/admissao-digital'
+      path: '/admissao-digital'
+      fullPath: '/admissao-digital'
+      preLoaderRoute: typeof AppAdmissaoDigitalRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/administracao': {
       id: '/_app/administracao'
       path: '/administracao'
@@ -426,6 +465,7 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppAdministracaoRoute: typeof AppAdministracaoRoute
+  AppAdmissaoDigitalRoute: typeof AppAdmissaoDigitalRoute
   AppAsoRoute: typeof AppAsoRoute
   AppAuditoriaRoute: typeof AppAuditoriaRoute
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
@@ -445,6 +485,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdministracaoRoute: AppAdministracaoRoute,
+  AppAdmissaoDigitalRoute: AppAdmissaoDigitalRoute,
   AppAsoRoute: AppAsoRoute,
   AppAuditoriaRoute: AppAuditoriaRoute,
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
@@ -468,6 +509,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  AdmissaoTokenRoute: AdmissaoTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
