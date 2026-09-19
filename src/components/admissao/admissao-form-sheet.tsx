@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { listEmpresas } from "@/lib/empresas-api";
+import { listEmpresasPaged } from "@/lib/empresas-api";
 import { listTomadores } from "@/lib/colaboradores-api";
 import { createAdmissao, updateAdmissao, type AdmissaoComRelacoes } from "@/lib/admissao-api";
 import { isValidEmail, isValidTelefone, maskTelefone, onlyDigits } from "@/lib/br-format";
@@ -71,7 +71,7 @@ export function AdmissaoFormSheet({ open, onOpenChange, admissao }: Props) {
   const [erros, setErros] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
-  const { data: empresas } = useQuery({ queryKey: ["empresas-lista"], queryFn: () => listEmpresas() });
+  const { data: empresas } = useQuery({ queryKey: ["empresas-lista"], queryFn: async () => (await listEmpresasPaged({ page: 1, pageSize: 500 })).rows });
   const { data: tomadores } = useQuery({ queryKey: ["tomadores-lista"], queryFn: listTomadores });
 
   useEffect(() => {
