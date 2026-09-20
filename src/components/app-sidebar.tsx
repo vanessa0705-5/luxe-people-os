@@ -16,6 +16,7 @@ import {
   ScrollText,
   LogOut,
   WalletCards,
+  UserPlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Colaboradores", url: "/colaboradores", icon: Users },
+  { title: "Admissão Digital", url: "/admissao-digital", icon: UserPlus },
   { title: "Empresas (CNPJs)", url: "/empresas", icon: Building2 },
   { title: "Tomadores", url: "/tomadores", icon: Factory },
   { title: "Coordenadores", url: "/coordenadores", icon: UserCog },
