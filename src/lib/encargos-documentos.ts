@@ -367,6 +367,86 @@ function distribuir(total: number, bases: number[]): number[] {
   });
 }
 
+const IGNORAR_LINHA =
+  /^(empregados|estagi[aá]rios|contribuintes|total|totais|resumo|departamento|empresa|cnpj|c[aá]lculo|compet[êe]ncia|per[ií]odo|p[aá]gina|emiss[aã]o|horas|c[oó]digo|rela[çc][aã]o)/i;
+
+/**
+ * Lê as relações de bases do INSS ou do IRRF e devolve o imposto de cada
+ * empregado (código + nome), somando múltiplos lançamentos do mesmo empregado.
+ * Os contribuintes individuais (pró-labore) ficam fora, pois não são rateados.
+ */
+function lerImpostoPorEmpregado(texto: string): ImpostoEmpregado[] {
+  const empregados = new Map<string, ImpostoEmpregado>();
+  let contribuinte = false;
+
+  for (const linhaBruta of texto.split(/\n+/)) {
+    const linha = linhaBruta.replace(/\s+/g, " ").trim();
+    if (!linha) continue;
+
+    if (/^CONTRIBUINTES\b/i.test(linha)) {
+      contribuinte = true;
+      continue;
+    }
+    if (/^(EMPREGADOS|ESTAGI[AÁ]RIOS)\b/i.test(linha) || /^Departamento:/i.test(linha)) {
+      contribuinte = false;
+      if (/^Departamento:/i.test(linha)) continue;
+      continue;
+    }
+    if (/Resumo\s+(Geral\s+)?(das\s+bases|IRRF)/i.test(linha)) {
+      contribuinte = false;
+      continue;
+    }
+
+    const registro = linha.match(/^(\d{1,6})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`´.\s]{3,}?)\s+(.*)$/);
+    if (!registro) continue;
+    const nome = registro[2].trim();
+    if (IGNORAR_LINHA.test(nome)) continue;
+
+    const moedas = Array.from(registro[3].matchAll(/-?[\d.]+,\d{2}/g));
+    if (!moedas.length) continue;
+    const valor = numeroBr(moedas[moedas.length - 1][0]);
+    if (contribuinte) continue;
+
+    const chave = registro[1] + "|" + normalizar(nome);
+    const atual = empregados.get(chave) ?? { codigo: registro[1], nome, valor: 0 };
+    atual.valor = round2(atual.valor + valor);
+    empregados.set(chave, atual);
+  }
+
+  return Array.from(empregados.values()).filter((item) => item.valor !== 0);
+}
+
+/** Soma o imposto por departamento/tomador cruzando código e nome do empregado. */
+function cruzarImpostoComLiquidos(
+  impostos: ImpostoEmpregado[],
+  colaboradores: ColaboradorLiquidos[],
+): { porDepartamento: Map<string, number>; naoIdentificados: ImpostoEmpregado[]; total: number } {
+  const porCodigo = new Map<string, ColaboradorLiquidos>();
+  const porNome = new Map<string, ColaboradorLiquidos>();
+  for (const item of colaboradores) {
+    if (item.codigo) porCodigo.set(item.codigo, item);
+    if (item.nome) porNome.set(normalizar(item.nome), item);
+  }
+
+  const porDepartamento = new Map<string, number>();
+  const naoIdentificados: ImpostoEmpregado[] = [];
+  let total = 0;
+
+  for (const imposto of impostos) {
+    total = round2(total + imposto.valor);
+    const colaborador =
+      porNome.get(normalizar(imposto.nome)) ?? porCodigo.get(imposto.codigo) ?? null;
+    if (!colaborador) {
+      naoIdentificados.push(imposto);
+      continue;
+    }
+    const chave = normalizar(colaborador.departamento);
+    porDepartamento.set(chave, round2((porDepartamento.get(chave) ?? 0) + imposto.valor));
+  }
+
+  return { porDepartamento, naoIdentificados, total };
+}
+
 export async function processarEncargosDocumentos(
   arquivos: ArquivosEncargos,
 ): Promise<ProcessamentoEncargos> {
