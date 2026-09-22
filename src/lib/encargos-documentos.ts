@@ -12,6 +12,8 @@ export interface ArquivosEncargos {
   consignado: File[];
   guiaFgts: File[];
   darf: File[];
+  basesInss?: File[];
+  basesIrrf?: File[];
 }
 
 export interface ConferenciaEncargos {
@@ -22,6 +24,11 @@ export interface ConferenciaEncargos {
   totalGuia: number;
   totalDarf: number;
   conferido: boolean;
+  inssRelatorio?: number;
+  inssDarf?: number;
+  irrfRelatorio?: number;
+  irrfDarf?: number;
+  origemImpostos?: "relatorios" | "darf";
 }
 
 export interface DetalheEncargos extends RateioTomador {
@@ -32,6 +39,7 @@ export interface DetalheEncargos extends RateioTomador {
 export interface ProcessamentoEncargos {
   resultado: ResultadoRateio | null;
   inconsistencias: InconsistenciaRateio[];
+  avisos: string[];
   detalhes: DetalheEncargos[];
   conferencia: ConferenciaEncargos;
   foraRateio: { prolabore: number; servicosPj: number; total: number };
@@ -39,11 +47,15 @@ export interface ProcessamentoEncargos {
 
 type ColaboradorLiquidos = {
   cpf: string;
+  codigo: string;
   nome: string;
   departamento: string;
   cnpj: string;
   liquido: number;
 };
+
+/** Imposto individual (INSS ou IRRF) lido das relações de bases da folha. */
+type ImpostoEmpregado = { codigo: string; nome: string; valor: number };
 
 const round2 = (valor: number) => Math.round((valor + Number.EPSILON) * 100) / 100;
 const digitos = (valor: unknown) => String(valor ?? "").replace(/\D/g, "");
