@@ -515,6 +515,7 @@ export async function processarEncargosDocumentos(
     const grupos = new Map<
       string,
       {
+        chave: string;
         nome: string;
         colaboradores: Set<string>;
         base: number;
@@ -527,6 +528,7 @@ export async function processarEncargosDocumentos(
       if (/\bpro\s*labore\b/.test(normalizar(colaborador.departamento))) continue;
       const chave = normalizar(colaborador.departamento);
       const grupo = grupos.get(chave) ?? {
+        chave,
         nome: nomeSemCodigo(colaborador.departamento),
         colaboradores: new Set<string>(),
         base: 0,
