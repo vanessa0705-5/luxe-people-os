@@ -12,6 +12,8 @@ export interface ArquivosEncargos {
   consignado: File[];
   guiaFgts: File[];
   darf: File[];
+  basesInss?: File[];
+  basesIrrf?: File[];
 }
 
 export interface ConferenciaEncargos {
@@ -22,6 +24,11 @@ export interface ConferenciaEncargos {
   totalGuia: number;
   totalDarf: number;
   conferido: boolean;
+  inssRelatorio?: number;
+  inssDarf?: number;
+  irrfRelatorio?: number;
+  irrfDarf?: number;
+  origemImpostos?: "relatorios" | "darf";
 }
 
 export interface DetalheEncargos extends RateioTomador {
@@ -32,6 +39,7 @@ export interface DetalheEncargos extends RateioTomador {
 export interface ProcessamentoEncargos {
   resultado: ResultadoRateio | null;
   inconsistencias: InconsistenciaRateio[];
+  avisos: string[];
   detalhes: DetalheEncargos[];
   conferencia: ConferenciaEncargos;
   foraRateio: { prolabore: number; servicosPj: number; total: number };
@@ -39,11 +47,15 @@ export interface ProcessamentoEncargos {
 
 type ColaboradorLiquidos = {
   cpf: string;
+  codigo: string;
   nome: string;
   departamento: string;
   cnpj: string;
   liquido: number;
 };
+
+/** Imposto individual (INSS ou IRRF) lido das relações de bases da folha. */
+type ImpostoEmpregado = { codigo: string; nome: string; valor: number };
 
 const round2 = (valor: number) => Math.round((valor + Number.EPSILON) * 100) / 100;
 const digitos = (valor: unknown) => String(valor ?? "").replace(/\D/g, "");
@@ -90,8 +102,26 @@ async function lerColaboradoresLiquidos(files: File[]): Promise<ColaboradorLiqui
           const trecho = bloco.slice(inicio, fim);
           const moedas = Array.from(trecho.matchAll(/[\d.]+,\d{2}/g));
           const liquido = moedas.length ? numeroBr(moedas[moedas.length - 1][0]) : 0;
+
+          const anteriorInicio =
+            indice === 0
+              ? 0
+              : (cpfs[indice - 1].index ?? 0) + cpfs[indice - 1][0].length;
+          const antes = bloco.slice(anteriorInicio, cpfs[indice].index ?? 0);
+          const ultimaLinha = antes.split(/\n+/).filter(Boolean).pop() ?? "";
+          const identificacao = ultimaLinha
+            .trim()
+            .match(/(\d{1,6})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`´.\s]+)$/);
+
           if (liquido && !colaboradores.has(cpf)) {
-            colaboradores.set(cpf, { cpf, nome: "", departamento, cnpj, liquido });
+            colaboradores.set(cpf, {
+              cpf,
+              codigo: identificacao?.[1] ?? "",
+              nome: (identificacao?.[2] ?? "").trim(),
+              departamento,
+              cnpj,
+              liquido,
+            });
           }
         }
       }
@@ -134,10 +164,15 @@ async function lerColaboradoresLiquidos(files: File[]): Promise<ColaboradorLiqui
           .slice(0, indiceCpf)
           .filter((cell) => /[A-Za-zÀ-ÿ]/.test(cell) && !/^(c[oó]digo|nome|cpf)$/i.test(cell));
         const nome = candidatosNome[candidatosNome.length - 1] ?? "";
+        const codigo =
+          cells
+            .slice(0, indiceCpf)
+            .filter((cell) => /^\d{1,6}$/.test(cell.trim()))
+            .shift() ?? "";
         const valores = cells.slice(indiceCpf + 1).map(numeroBr).filter((valor) => valor !== 0);
         const liquido = valores[valores.length - 1] ?? 0;
         if (liquido && !colaboradores.has(cpf)) {
-          colaboradores.set(cpf, { cpf, nome, departamento, cnpj, liquido });
+          colaboradores.set(cpf, { cpf, codigo, nome, departamento, cnpj, liquido });
         }
       }
     }
@@ -332,20 +367,110 @@ function distribuir(total: number, bases: number[]): number[] {
   });
 }
 
+const IGNORAR_LINHA =
+  /^(empregados|estagi[aá]rios|contribuintes|total|totais|resumo|departamento|empresa|cnpj|c[aá]lculo|compet[êe]ncia|per[ií]odo|p[aá]gina|emiss[aã]o|horas|c[oó]digo|rela[çc][aã]o)/i;
+
+/**
+ * Lê as relações de bases do INSS ou do IRRF e devolve o imposto de cada
+ * empregado (código + nome), somando múltiplos lançamentos do mesmo empregado.
+ * Os contribuintes individuais (pró-labore) ficam fora, pois não são rateados.
+ */
+function lerImpostoPorEmpregado(texto: string): ImpostoEmpregado[] {
+  const empregados = new Map<string, ImpostoEmpregado>();
+  let contribuinte = false;
+
+  for (const linhaBruta of texto.split(/\n+/)) {
+    const linha = linhaBruta.replace(/\s+/g, " ").trim();
+    if (!linha) continue;
+
+    if (/^CONTRIBUINTES\b/i.test(linha)) {
+      contribuinte = true;
+      continue;
+    }
+    if (/^(EMPREGADOS|ESTAGI[AÁ]RIOS)\b/i.test(linha) || /^Departamento:/i.test(linha)) {
+      contribuinte = false;
+      if (/^Departamento:/i.test(linha)) continue;
+      continue;
+    }
+    if (/Resumo\s+(Geral\s+)?(das\s+bases|IRRF)/i.test(linha)) {
+      contribuinte = false;
+      continue;
+    }
+
+    const registro = linha.match(/^(\d{1,6})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`´.\s]{3,}?)\s+(.*)$/);
+    if (!registro) continue;
+    const nome = registro[2].trim();
+    if (IGNORAR_LINHA.test(nome)) continue;
+
+    const moedas = Array.from(registro[3].matchAll(/-?[\d.]+,\d{2}/g));
+    if (!moedas.length) continue;
+    const valor = numeroBr(moedas[moedas.length - 1][0]);
+    if (contribuinte) continue;
+
+    const chave = registro[1] + "|" + normalizar(nome);
+    const atual = empregados.get(chave) ?? { codigo: registro[1], nome, valor: 0 };
+    atual.valor = round2(atual.valor + valor);
+    empregados.set(chave, atual);
+  }
+
+  return Array.from(empregados.values()).filter((item) => item.valor !== 0);
+}
+
+/** Soma o imposto por departamento/tomador cruzando código e nome do empregado. */
+function cruzarImpostoComLiquidos(
+  impostos: ImpostoEmpregado[],
+  colaboradores: ColaboradorLiquidos[],
+): { porDepartamento: Map<string, number>; naoIdentificados: ImpostoEmpregado[]; total: number } {
+  const porCodigo = new Map<string, ColaboradorLiquidos>();
+  const porNome = new Map<string, ColaboradorLiquidos>();
+  for (const item of colaboradores) {
+    if (item.codigo) porCodigo.set(item.codigo, item);
+    if (item.nome) porNome.set(normalizar(item.nome), item);
+  }
+
+  const porDepartamento = new Map<string, number>();
+  const naoIdentificados: ImpostoEmpregado[] = [];
+  let total = 0;
+
+  for (const imposto of impostos) {
+    total = round2(total + imposto.valor);
+    const colaborador =
+      porNome.get(normalizar(imposto.nome)) ?? porCodigo.get(imposto.codigo) ?? null;
+    if (!colaborador) {
+      naoIdentificados.push(imposto);
+      continue;
+    }
+    const chave = normalizar(colaborador.departamento);
+    porDepartamento.set(chave, round2((porDepartamento.get(chave) ?? 0) + imposto.valor));
+  }
+
+  return { porDepartamento, naoIdentificados, total };
+}
+
 export async function processarEncargosDocumentos(
   arquivos: ArquivosEncargos,
 ): Promise<ProcessamentoEncargos> {
   const inconsistencias: InconsistenciaRateio[] = [];
+  const avisos: string[] = [];
 
   try {
-    const [colaboradores, textoFgts, textoConsignado, textoGuia, textoDarf] =
-      await Promise.all([
-        lerColaboradoresLiquidos(arquivos.liquidos),
-        combinarTextos(arquivos.fgtsMensal),
-        combinarTextos(arquivos.consignado),
-        combinarTextos(arquivos.guiaFgts),
-        combinarTextos(arquivos.darf),
-      ]);
+    const [
+      colaboradores,
+      textoFgts,
+      textoConsignado,
+      textoGuia,
+      textoDarf,
+      textoInss,
+      textoIrrf,
+    ] = await Promise.all([
+      lerColaboradoresLiquidos(arquivos.liquidos),
+      combinarTextos(arquivos.fgtsMensal),
+      combinarTextos(arquivos.consignado),
+      combinarTextos(arquivos.guiaFgts),
+      combinarTextos(arquivos.darf),
+      combinarTextos(arquivos.basesInss ?? []),
+      combinarTextos(arquivos.basesIrrf ?? []),
+    ]);
 
     const fgtsPorCpf = lerFgtsPorCpf(textoFgts);
     const consignadoPorCpf = lerConsignadoPorCpf(textoConsignado);
@@ -361,6 +486,17 @@ export async function processarEncargosDocumentos(
     );
     if (!darf.inssEmpregados || !darf.irrfEmpregados)
       throw new Error("DARF: os códigos 1082 (INSS) e 0561 (IRRF) não foram localizados.");
+
+    const impostosInss = textoInss ? lerImpostoPorEmpregado(textoInss) : [];
+    const impostosIrrf = textoIrrf ? lerImpostoPorEmpregado(textoIrrf) : [];
+    if (arquivos.basesInss?.length && !impostosInss.length)
+      throw new Error(
+        "Relação de bases do INSS: não foi possível identificar empregados e valores de INSS no arquivo.",
+      );
+    if (arquivos.basesIrrf?.length && !impostosIrrf.length)
+      throw new Error(
+        "Relação das bases do IRRF: não foi possível identificar empregados e valores de IRRF no arquivo.",
+      );
 
     const porCpf = new Map(colaboradores.map((item) => [item.cpf, item]));
     for (const cpf of new Set([...fgtsPorCpf.keys(), ...consignadoPorCpf.keys()])) {
@@ -379,6 +515,7 @@ export async function processarEncargosDocumentos(
     const grupos = new Map<
       string,
       {
+        chave: string;
         nome: string;
         colaboradores: Set<string>;
         base: number;
@@ -391,6 +528,7 @@ export async function processarEncargosDocumentos(
       if (/\bpro\s*labore\b/.test(normalizar(colaborador.departamento))) continue;
       const chave = normalizar(colaborador.departamento);
       const grupo = grupos.get(chave) ?? {
+        chave,
         nome: nomeSemCodigo(colaborador.departamento),
         colaboradores: new Set<string>(),
         base: 0,
@@ -412,14 +550,58 @@ export async function processarEncargosDocumentos(
     if (!lista.length)
       throw new Error("Relatório de Líquidos: nenhum departamento rateável foi encontrado.");
 
-    const inssDistribuido = distribuir(
-      darf.inssEmpregados,
-      lista.map((item) => item.base),
-    );
-    const irrfDistribuido = distribuir(
-      darf.irrfEmpregados,
-      lista.map((item) => item.base),
-    );
+    const bases = lista.map((item) => item.base);
+    const cruzamentoInss = impostosInss.length
+      ? cruzarImpostoComLiquidos(impostosInss, colaboradores)
+      : null;
+    const cruzamentoIrrf = impostosIrrf.length
+      ? cruzarImpostoComLiquidos(impostosIrrf, colaboradores)
+      : null;
+
+    /**
+     * Usa o imposto individual da folha por Departamento/Tomador. O que não for
+     * identificado no relatório de líquidos e a diferença em relação ao DARF são
+     * rateados proporcionalmente ao líquido, mantendo o total igual ao recolhido.
+     */
+    const impostoPorTomador = (
+      cruzamento: ReturnType<typeof cruzarImpostoComLiquidos> | null,
+      totalRecolhido: number,
+      nomeImposto: string,
+    ): number[] => {
+      if (!cruzamento) return distribuir(totalRecolhido, bases);
+
+      const naoIdentificado = round2(
+        cruzamento.naoIdentificados.reduce((acc, item) => acc + item.valor, 0),
+      );
+      if (naoIdentificado)
+        avisos.push(
+          nomeImposto +
+            ": " +
+            cruzamento.naoIdentificados.length +
+            " empregado(s) sem Departamento/Tomador no relatório de líquidos (" +
+            cruzamento.naoIdentificados.map((item) => item.nome).join(", ") +
+            "). O valor foi rateado proporcionalmente ao líquido.",
+        );
+
+      const diferencaDarf = round2(totalRecolhido - cruzamento.total);
+      if (Math.abs(diferencaDarf) > 0.01)
+        avisos.push(
+          nomeImposto +
+            ": o relatório da folha soma " +
+            cruzamento.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
+            " e o DARF " +
+            totalRecolhido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
+            ". A diferença foi rateada proporcionalmente ao líquido.",
+        );
+
+      const residual = distribuir(round2(naoIdentificado + diferencaDarf), bases);
+      return lista.map((item, indice) =>
+        round2((cruzamento.porDepartamento.get(item.chave) ?? 0) + (residual[indice] ?? 0)),
+      );
+    };
+
+    const inssDistribuido = impostoPorTomador(cruzamentoInss, darf.inssEmpregados, "INSS");
+    const irrfDistribuido = impostoPorTomador(cruzamentoIrrf, darf.irrfEmpregados, "IRRF");
 
     const detalhes: DetalheEncargos[] = lista.map((item, indice) => {
       const fgtsConsignado = round2(item.fgts + item.consignado);
@@ -438,6 +620,8 @@ export async function processarEncargosDocumentos(
         totalGeral,
       };
     });
+    const totalInssRateado = round2(detalhes.reduce((acc, item) => acc + item.inss, 0));
+    const totalIrrfRateado = round2(detalhes.reduce((acc, item) => acc + item.irrf, 0));
 
     const totalFgtsRelatorio = round2(
       Array.from(fgtsPorCpf.values()).reduce((acc, valor) => acc + valor, 0),
