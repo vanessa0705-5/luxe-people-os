@@ -550,14 +550,58 @@ export async function processarEncargosDocumentos(
     if (!lista.length)
       throw new Error("Relatório de Líquidos: nenhum departamento rateável foi encontrado.");
 
-    const inssDistribuido = distribuir(
-      darf.inssEmpregados,
-      lista.map((item) => item.base),
-    );
-    const irrfDistribuido = distribuir(
-      darf.irrfEmpregados,
-      lista.map((item) => item.base),
-    );
+    const bases = lista.map((item) => item.base);
+    const cruzamentoInss = impostosInss.length
+      ? cruzarImpostoComLiquidos(impostosInss, colaboradores)
+      : null;
+    const cruzamentoIrrf = impostosIrrf.length
+      ? cruzarImpostoComLiquidos(impostosIrrf, colaboradores)
+      : null;
+
+    /**
+     * Usa o imposto individual da folha por Departamento/Tomador. O que não for
+     * identificado no relatório de líquidos e a diferença em relação ao DARF são
+     * rateados proporcionalmente ao líquido, mantendo o total igual ao recolhido.
+     */
+    const impostoPorTomador = (
+      cruzamento: ReturnType<typeof cruzarImpostoComLiquidos> | null,
+      totalRecolhido: number,
+      nomeImposto: string,
+    ): number[] => {
+      if (!cruzamento) return distribuir(totalRecolhido, bases);
+
+      const naoIdentificado = round2(
+        cruzamento.naoIdentificados.reduce((acc, item) => acc + item.valor, 0),
+      );
+      if (naoIdentificado)
+        avisos.push(
+          nomeImposto +
+            ": " +
+            cruzamento.naoIdentificados.length +
+            " empregado(s) sem Departamento/Tomador no relatório de líquidos (" +
+            cruzamento.naoIdentificados.map((item) => item.nome).join(", ") +
+            "). O valor foi rateado proporcionalmente ao líquido.",
+        );
+
+      const diferencaDarf = round2(totalRecolhido - cruzamento.total);
+      if (Math.abs(diferencaDarf) > 0.01)
+        avisos.push(
+          nomeImposto +
+            ": o relatório da folha soma " +
+            cruzamento.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
+            " e o DARF " +
+            totalRecolhido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
+            ". A diferença foi rateada proporcionalmente ao líquido.",
+        );
+
+      const residual = distribuir(round2(naoIdentificado + diferencaDarf), bases);
+      return lista.map((item, indice) =>
+        round2((cruzamento.porDepartamento.get(item.chave) ?? 0) + (residual[indice] ?? 0)),
+      );
+    };
+
+    const inssDistribuido = impostoPorTomador(cruzamentoInss, darf.inssEmpregados, "INSS");
+    const irrfDistribuido = impostoPorTomador(cruzamentoIrrf, darf.irrfEmpregados, "IRRF");
 
     const detalhes: DetalheEncargos[] = lista.map((item, indice) => {
       const fgtsConsignado = round2(item.fgts + item.consignado);
@@ -576,6 +620,8 @@ export async function processarEncargosDocumentos(
         totalGeral,
       };
     });
+    const totalInssRateado = round2(detalhes.reduce((acc, item) => acc + item.inss, 0));
+    const totalIrrfRateado = round2(detalhes.reduce((acc, item) => acc + item.irrf, 0));
 
     const totalFgtsRelatorio = round2(
       Array.from(fgtsPorCpf.values()).reduce((acc, valor) => acc + valor, 0),
