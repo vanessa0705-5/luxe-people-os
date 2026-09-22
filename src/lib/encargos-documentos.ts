@@ -164,10 +164,15 @@ async function lerColaboradoresLiquidos(files: File[]): Promise<ColaboradorLiqui
           .slice(0, indiceCpf)
           .filter((cell) => /[A-Za-zÀ-ÿ]/.test(cell) && !/^(c[oó]digo|nome|cpf)$/i.test(cell));
         const nome = candidatosNome[candidatosNome.length - 1] ?? "";
+        const codigo =
+          cells
+            .slice(0, indiceCpf)
+            .filter((cell) => /^\d{1,6}$/.test(cell.trim()))
+            .shift() ?? "";
         const valores = cells.slice(indiceCpf + 1).map(numeroBr).filter((valor) => valor !== 0);
         const liquido = valores[valores.length - 1] ?? 0;
         if (liquido && !colaboradores.has(cpf)) {
-          colaboradores.set(cpf, { cpf, nome, departamento, cnpj, liquido });
+          colaboradores.set(cpf, { cpf, codigo, nome, departamento, cnpj, liquido });
         }
       }
     }
