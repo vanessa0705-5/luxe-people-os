@@ -451,16 +451,26 @@ export async function processarEncargosDocumentos(
   arquivos: ArquivosEncargos,
 ): Promise<ProcessamentoEncargos> {
   const inconsistencias: InconsistenciaRateio[] = [];
+  const avisos: string[] = [];
 
   try {
-    const [colaboradores, textoFgts, textoConsignado, textoGuia, textoDarf] =
-      await Promise.all([
-        lerColaboradoresLiquidos(arquivos.liquidos),
-        combinarTextos(arquivos.fgtsMensal),
-        combinarTextos(arquivos.consignado),
-        combinarTextos(arquivos.guiaFgts),
-        combinarTextos(arquivos.darf),
-      ]);
+    const [
+      colaboradores,
+      textoFgts,
+      textoConsignado,
+      textoGuia,
+      textoDarf,
+      textoInss,
+      textoIrrf,
+    ] = await Promise.all([
+      lerColaboradoresLiquidos(arquivos.liquidos),
+      combinarTextos(arquivos.fgtsMensal),
+      combinarTextos(arquivos.consignado),
+      combinarTextos(arquivos.guiaFgts),
+      combinarTextos(arquivos.darf),
+      combinarTextos(arquivos.basesInss ?? []),
+      combinarTextos(arquivos.basesIrrf ?? []),
+    ]);
 
     const fgtsPorCpf = lerFgtsPorCpf(textoFgts);
     const consignadoPorCpf = lerConsignadoPorCpf(textoConsignado);
@@ -476,6 +486,17 @@ export async function processarEncargosDocumentos(
     );
     if (!darf.inssEmpregados || !darf.irrfEmpregados)
       throw new Error("DARF: os códigos 1082 (INSS) e 0561 (IRRF) não foram localizados.");
+
+    const impostosInss = textoInss ? lerImpostoPorEmpregado(textoInss) : [];
+    const impostosIrrf = textoIrrf ? lerImpostoPorEmpregado(textoIrrf) : [];
+    if (arquivos.basesInss?.length && !impostosInss.length)
+      throw new Error(
+        "Relação de bases do INSS: não foi possível identificar empregados e valores de INSS no arquivo.",
+      );
+    if (arquivos.basesIrrf?.length && !impostosIrrf.length)
+      throw new Error(
+        "Relação das bases do IRRF: não foi possível identificar empregados e valores de IRRF no arquivo.",
+      );
 
     const porCpf = new Map(colaboradores.map((item) => [item.cpf, item]));
     for (const cpf of new Set([...fgtsPorCpf.keys(), ...consignadoPorCpf.keys()])) {
