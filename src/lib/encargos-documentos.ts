@@ -102,8 +102,26 @@ async function lerColaboradoresLiquidos(files: File[]): Promise<ColaboradorLiqui
           const trecho = bloco.slice(inicio, fim);
           const moedas = Array.from(trecho.matchAll(/[\d.]+,\d{2}/g));
           const liquido = moedas.length ? numeroBr(moedas[moedas.length - 1][0]) : 0;
+
+          const anteriorInicio =
+            indice === 0
+              ? 0
+              : (cpfs[indice - 1].index ?? 0) + cpfs[indice - 1][0].length;
+          const antes = bloco.slice(anteriorInicio, cpfs[indice].index ?? 0);
+          const ultimaLinha = antes.split(/\n+/).filter(Boolean).pop() ?? "";
+          const identificacao = ultimaLinha
+            .trim()
+            .match(/(\d{1,6})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`´.\s]+)$/);
+
           if (liquido && !colaboradores.has(cpf)) {
-            colaboradores.set(cpf, { cpf, nome: "", departamento, cnpj, liquido });
+            colaboradores.set(cpf, {
+              cpf,
+              codigo: identificacao?.[1] ?? "",
+              nome: (identificacao?.[2] ?? "").trim(),
+              departamento,
+              cnpj,
+              liquido,
+            });
           }
         }
       }
