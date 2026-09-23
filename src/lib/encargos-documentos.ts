@@ -664,9 +664,7 @@ export async function processarEncargosDocumentos(
         mensagem: "Guia FGTS + Consignado: o total da guia diverge da soma dos componentes.",
       });
 
-    const totalRateavel = round2(
-      guia.total + darf.inssEmpregados + darf.irrfEmpregados,
-    );
+    const totalRateavel = round2(guia.total + totalInssRateado + totalIrrfRateado);
     const totalRateado = round2(
       detalhes.reduce((acc, item) => acc + item.totalGeral, 0),
     );
@@ -696,6 +694,11 @@ export async function processarEncargosDocumentos(
       totalGuia: guia.total,
       totalDarf,
       conferido: fgtsConfere && consignadoConfere && guiaConfere,
+      inssRelatorio: cruzamentoInss?.total ?? totalInssRateado,
+      inssDarf: darf.inssEmpregados,
+      irrfRelatorio: cruzamentoIrrf?.total ?? totalIrrfRateado,
+      irrfDarf: darf.irrfEmpregados,
+      origemImpostos: cruzamentoInss || cruzamentoIrrf ? "relatorios" : "darf",
     };
 
     const resultado = inconsistencias.length
@@ -708,8 +711,8 @@ export async function processarEncargosDocumentos(
               tomadores: detalhes.length,
               folha: 0,
               fgtsConsignado: guia.total,
-              inss: darf.inssEmpregados,
-              irrf: darf.irrfEmpregados,
+              inss: totalInssRateado,
+              irrf: totalIrrfRateado,
               totalGeral,
               detalhes,
             },
@@ -720,8 +723,8 @@ export async function processarEncargosDocumentos(
             colaboradores: colaboradores.length,
             folha: 0,
             fgtsConsignado: guia.total,
-            inss: darf.inssEmpregados,
-            irrf: darf.irrfEmpregados,
+            inss: totalInssRateado,
+            irrf: totalIrrfRateado,
             totalGeral,
             prolabore: foraRateio.total,
             totalArquivo: totalGeral,
@@ -731,11 +734,15 @@ export async function processarEncargosDocumentos(
             totalRateavel,
             foraRateio,
             conferencia,
-            arquivos: Object.values(arquivos).map((arquivo) => arquivo.name),
+            avisos,
+            arquivos: Object.values(arquivos)
+              .flat()
+              .filter(Boolean)
+              .map((arquivo) => arquivo.name),
           },
         } as ResultadoRateio);
 
-    return { resultado, inconsistencias, detalhes, conferencia, foraRateio };
+    return { resultado, inconsistencias, avisos, detalhes, conferencia, foraRateio };
   } catch (error) {
     inconsistencias.push({
       tipo: "total",
@@ -745,6 +752,7 @@ export async function processarEncargosDocumentos(
     return {
       resultado: null,
       inconsistencias,
+      avisos,
       detalhes: [],
       conferencia: {
         fgtsRelatorio: 0,
