@@ -192,6 +192,8 @@ function RateioFolhaPage() {
   const [arquivosConsignado, setArquivosConsignado] = useState<File[]>([]);
   const [arquivosGuiaFgts, setArquivosGuiaFgts] = useState<File[]>([]);
   const [arquivosDarf, setArquivosDarf] = useState<File[]>([]);
+  const [arquivosBasesInss, setArquivosBasesInss] = useState<File[]>([]);
+  const [arquivosBasesIrrf, setArquivosBasesIrrf] = useState<File[]>([]);
   const [processandoEncargos, setProcessandoEncargos] = useState(false);
   const [processamentoEncargos, setProcessamentoEncargos] = useState<ProcessamentoEncargos | null>(null);
 
@@ -236,7 +238,19 @@ function RateioFolhaPage() {
       ? relatorio
         ? 100
         : 0
-      : [arquivosLiquidosEncargos, arquivosFgtsMensal, arquivosConsignado, arquivosGuiaFgts, arquivosDarf].filter((arquivos) => arquivos.length > 0).length * 20;
+      : Math.round(
+          ([
+            arquivosLiquidosEncargos,
+            arquivosFgtsMensal,
+            arquivosConsignado,
+            arquivosGuiaFgts,
+            arquivosDarf,
+            arquivosBasesInss,
+            arquivosBasesIrrf,
+          ].filter((arquivos) => arquivos.length > 0).length /
+            7) *
+            100,
+        );
   const origensLiquidos = useMemo(
     () => (relatorio ? origensDoRelatorioLiquidos(relatorio) : { folha: [], rateios: [] }),
     [relatorio],
@@ -345,9 +359,11 @@ function RateioFolhaPage() {
       !arquivosFgtsMensal.length ||
       !arquivosConsignado.length ||
       !arquivosGuiaFgts.length ||
-      !arquivosDarf.length
+      !arquivosDarf.length ||
+      !arquivosBasesInss.length ||
+      !arquivosBasesIrrf.length
     ) {
-      return toast.error("Envie os cinco documentos obrigatórios dos encargos.");
+      return toast.error("Envie os sete documentos obrigatórios dos encargos.");
     }
 
     setProcessandoEncargos(true);
@@ -360,6 +376,8 @@ function RateioFolhaPage() {
         consignado: arquivosConsignado,
         guiaFgts: arquivosGuiaFgts,
         darf: arquivosDarf,
+        basesInss: arquivosBasesInss,
+        basesIrrf: arquivosBasesIrrf,
       });
       setProcessamentoEncargos(processado);
       setInconsistencias(processado.inconsistencias);
@@ -427,6 +445,8 @@ function RateioFolhaPage() {
     setArquivosConsignado([]);
     setArquivosGuiaFgts([]);
     setArquivosDarf([]);
+    setArquivosBasesInss([]);
+    setArquivosBasesIrrf([]);
     setProcessamentoEncargos(null);
     setFolha([]);
     setRateios([]);
@@ -604,6 +624,28 @@ function RateioFolhaPage() {
                       setSalvoAtual(null);
                     }}
                   />
+                  <UploadCardMultiplo
+                    id="encargos-bases-inss"
+                    titulo="Relação de bases do INSS"
+                    descricao="INSS de cada empregado da folha, cruzado com o relatório de líquidos"
+                    arquivos={arquivosBasesInss}
+                    onChange={(files) => {
+                      setArquivosBasesInss(files);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                  />
+                  <UploadCardMultiplo
+                    id="encargos-bases-irrf"
+                    titulo="Relação das bases do IRRF"
+                    descricao="IRRF de cada empregado da folha, cruzado com o relatório de líquidos"
+                    arquivos={arquivosBasesIrrf}
+                    onChange={(files) => {
+                      setArquivosBasesIrrf(files);
+                      setResultado(null);
+                      setSalvoAtual(null);
+                    }}
+                  />
                 </>
               )}
             </div>
@@ -620,7 +662,9 @@ function RateioFolhaPage() {
                       !arquivosFgtsMensal.length ||
                       !arquivosConsignado.length ||
                       !arquivosGuiaFgts.length ||
-                      !arquivosDarf.length
+                      !arquivosDarf.length ||
+                      !arquivosBasesInss.length ||
+                      !arquivosBasesIrrf.length
                 }
                 className="bg-gradient-gold font-semibold shadow-gold hover:opacity-95"
               >
