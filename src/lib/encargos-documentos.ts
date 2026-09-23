@@ -752,6 +752,7 @@ export async function processarEncargosDocumentos(
     return {
       resultado: null,
       inconsistencias,
+      avisos,
       detalhes: [],
       conferencia: {
         fgtsRelatorio: 0,
